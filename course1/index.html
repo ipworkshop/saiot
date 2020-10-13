@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Course 1 - Introduction to Rust</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../style/style.css"></link>
+    <style>
+      
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Introduction to Rust
+
+.title[.center[![SecureEmbeddedProgramming](../images/sep.png)]]
+
+.left[
+Based on: [Rust ISP 2019](https://github.com/newpavlov/rust-isp-2019) slides  
+Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
+]
+
+---
+
+# Simple Rust 
+
+```rust
+fn main() {
+    println!("Hello, world!");
+}
+```
+
+- `println!` is a macro, not a function, it replaces code
+- function `main` does not return a value (almost true)
+
+.card[.large[.center[![Hello Rust](../images/sep_hello.png)]]]
+
+---
+## `print!` & `println!`
+- Print stuff out. Yay.
+- Use `{}` for general string interpolation, and `{:?}` for debug printing.
+    - Some types can only be printed with `{:?}`, like arrays and `Vec`s.
+
+```rust
+print!("{}, {}, {}", "foo", 3, true);
+// => foo, 3, true
+println!("{:?}, {:?}", "foo", [1, 2, 3]);
+// => "foo", [1, 2, 3]
+```
+
+
+## `format!` 
+- Uses `println!`-style string interpolation to create formatted `String`s.
+
+```rust
+let fmted = format!("{}, {:x}, {:?}", 12, 155, [1,2,3]);
+// fmted == "12, 9b, [1,2,3]"
+```
+
+---
+
+## Workpoint 1 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="120" music="../music/workpoint.mp3"></span>)
+
+Write the text
+
+```rust
+// let name = ...
+println! ("Hello Rusters, I am {} and Rust is awseome", );
+```
+
+---
+
+## Security Tip .top_image[![Seatbelt](../images/seatbelt.png)] Format Injection
+
+Missuse of `printf` format
+
+```c
+// program: penguin-tiger-manatee
+#include <stdio.h>
+
+#define LEN 255
+
+int main() {
+    char s[LEN];
+    fgets (s, LEN-1, stdin);
+    printf (s);
+    return 0;
+}
+```
+
+The same source in Rust
+
+```rust
+use std::io::{self, stdin, Read};
+
+fn main () {
+  let mut s = String::new();
+  io::stdin().read_to_string(&mut s).unwrap();
+  println! (buffer);
+}
+```
+
+---
+
+## `panic!(msg)`
+- Exits current task with given message.
+- Don't do this lightly! It is better to handle and report errors explicitly.
+
+```rust
+if x < 0 {
+    panic!("Oh noes!");
+}
+```
+
+## `assert!` & `assert_eq!`
+
+- `assert!(condition)` panics if `condition` is `false`.
+- `assert_eq!(left, right)` panics if `left != right`.
+- `debug_assert!(condition)` and `debug_assert_eq!(left, right)` work in debug build, but omitted in release build.
+
+```rust
+let actual = 1 + 2;
+assert!(actual == 3);
+assert_eq!(3, actual);
+```
+
+---
+## `unreachable!()`
+
+- Used to indicate that some code should not be reached.
+- `panic!`s when reached.
+- Can be useful to track down unexpected bugs (e.g. optimization bugs).
+
+```rust
+if false {
+    unreachable!();
+}
+```
+
+
+## `unimplemented!()`
+
+- Shorthand for `panic!("not yet implemented")`.
+
+```rust
+fn sum(x: &[i32]) -> i32 {
+    // TODO
+    unimplemented!();
+}
+```
+
+---
+
+## `dbg!()`
+
+- A macro for quick and dirty debugging with which you can inspect the value of a given expression.
+- Was added in Rust 1.32.
+
+```rust
+let a = 2;
+let b = dbg!(a * 2) + 1;
+//      ^-- prints: [src/main.rs:2] a * 2 = 4
+assert_eq!(b, 5);
+```
+
+---
+
+## Variable Bindings ###
+- Variables are bound with `let`:
+```rust
+let x = 17;
+```
+
+- Bindings are implicitly-typed: the compiler infers based on context.
+- The compiler can't always determine the type of a variable, so sometimes you
+  have to add type annotations.
+```rust
+let x: i16 = 17;
+```
+
+- Variables are inherently immutable:
+```rust
+let x = 5;
+x += 1; // error: re-assignment of immutable variable x
+let mut y = 5;
+y += 1; // OK!
+```
+
+---
+## Variable Bindings ###
+- Bindings may be shadowed:
+```rust
+let x = 17;
+let y = 53;
+let x = "Shadowed!";
+// x is not mutable, but we're able to re-bind it
+```
+
+- The shadowed binding for `x` above lasts until it goes out of scope.
+- Above, we've effectively lost the first binding, since both `x`s are in the same scope.
+
+- Patterns may also be used to declare variables:
+```rust
+let (a, b) = ("foo", 12);
+let [c, d] = [1, 2];
+```
+
+---
+# Workpoint 2 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="120" music="../music/workpoint_extra.mp3"></span>)
+
+Print the a + b expression
+
+```rust
+let a = 10;
+let b = 20;
+// print debug information for the a + b expression
+```
+
+There are some macros to help you.
+
+---
+class: split-70
+# Primitive Types 
+
+.column[
+- `unit`: () (similar with `void` from C)
+- `bool`: `true` and `false`
+- `char`: `'c'` or `'😺'` (`char`s are Unicode code-points, i.e. 4 bytes long!)
+
+- Numerics: specify the signedness and size.
+    - `i8`, `i16`, `i32`, `i64`, `isize`
+    - `u8`, `u16`, `u32`, `u64`, `usize`
+    - `f32`, `f64`
+    - `isize` & `usize` are the size of pointers (and therefore have
+        machine-dependent size)
+    - Literals are spelled like `10i8`, `10u16`, `10.0f32`, `10usize`.
+    - Type inference for non-specific literals default to `i32` or `f64`:
+      - e.g. `10` defaults to `i32`, `10.0` defaults to `f64`.
+]
+
+.column[
+.card[.small[.center[![Data Types](../images/sep_datatypes.png)]]]
+]
+
+
+---
+## Arrays
+- Arrays are generically of type `[T; N]`.
+    - N is a compile-time _constant_. Arrays cannot be resized.
+    - Array access is bounds-checked at runtime.
+    - No const generics yet. (planned to be added in 2019)
+- Arrays are indexed with `[]` like most other languages:
+    - `arr[3]` gives you the 4th element of `arr`
+
+```rust
+let arr1 = [1, 2, 3]; // (array of 3 elements)
+let arr2 = [2; 32];   // (array of 32 `2`s)
+```
+
+.card[.small[.center[![Array Define](../images/sep_array_define.png) ![Array Access](../images/sep_array_access.png)]]]
+
+---
+## Slices
+- Generically of type `&[T]`
+- A "view" into an array (or heap allocated data) by reference
+- Not created directly, but are borrowed from other variables
+- Mutable `&mut [T]` or immutable `&[T]`
+
+```rust
+let arr = [0, 1, 2, 3, 4, 5];
+let val = arr[0];               // val = 0
+let total_slice = &arr;         // Slice all of `arr`
+let total_slice = &arr[..];     // Same, but more explicit
+let partial_slice = &arr[2..5]; // [2, 3, 4]
+```
+
+---
+## Strings
+- Two types of Rust strings: `String` and `&str`.
+- `String` is a heap-allocated, growable vector of characters.
+- `&str` is a type&sup1; that's used to slice into `String`s.
+- String literals like `"foo"` are of type `&str`.
+- Strings are guaranteed to be encoded using UTF-8
+
+```rust
+let s: &str = "galaxy";
+let s2: String = "галактика".to_string();
+let s3: String = String::from("銀漢");
+let s4: &str = &s3;
+```
+
+```rust
+let s1 = "foobar";
+// You can slice strings:
+let s2 = &s1[1..3];
+// But you can't index with []
+// you can use `s1.chars().nth(1).unwrap()` instead
+let s3 = s1[1] // does not work!
+```
+
+&sup1;`str` is an unsized type, which doesn't have a compile-time known size,
+and therefore cannot exist by itself.
+
+---
+## Tuples 
+- Fixed-size, ordered, heterogeneous lists
+- Index into tuples with `foo.0`, `foo.1`, etc.
+- Can be destructured for example in `let` bindings
+
+```rust
+let foo: (i32, char, f64) = (72, 'H', 5.1);
+let (x, y, z) = (72, 'H', 5.1);
+let (a, b, c) = foo; // a = 72, b = 'H', c = 5.1
+```
+  
+---
+## References 
+
+- Reference *types* are written with an `&`: `&i32`.
+- References can be taken with `&` (like C/C++).
+- References can be _dereferenced_ with `*` (like C/C++).
+- References are guaranteed to be valid.
+    - Validity is enforced through compile-time checks!
+- These are *not* the same as pointers!
+- Reference lifetimes are pretty complex, as we'll explore later on in the course.
+
+```rust
+let x = 12;
+let ref_x = &x;
+println!("{}", *ref_x); // 12
+```
+
+---
+# Casting 
+
+- Cast between types with `as`:
+
+```rust
+let x: i32 = 100;
+let y: u32 = x as u32;
+```
+
+- Naturally, you can only cast between types that are safe to cast between.
+    - No casting `[i16; 4]` to `char`! (This is called a "non-scalar" cast)
+    - There are unsafe mechanisms to overcome this, if you know what you're doing.
+
+
+---
+# Expressions
+
+- (Almost!) everything is an expression: something which returns a value.
+    - Exception: variable bindings are not expressions.
+- The "nothing" type is called "unit", which is written `()`.
+    - The _type_ `()` has only one value: `()`.
+    - `()` is the default return type.
+- Discard an expression's value by appending a semicolon. Now it returns `()`.
+    - Hence, if a function ends in a semicolon, it returns `()`.
+
+```rust
+fn foo() -> i32 { 5 }
+fn bar() -> () { () }
+fn baz() -> () { 5; }
+fn qux()       { 5; }
+```
+
+
+---
+# Control Flow
+
+- `if` and `match` 
+- `while` and `loop`
+- `for` iteration
+
+---
+## If Statements
+
+```rust
+let x = 10;
+
+if x > 0 {
+    println! ("positive");
+} else if x == 0 {
+    println! ("zero");
+} else {
+    println! ("negative");
+}
+```
+- No parentheses necessary.
+- Entire if statement evaluates to one expression, so every arm must end with
+  an expression of the same type.
+    - In this example is it unit `()`:
+
+---
+# Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="120" music="../music/workpoint.mp3"></span>)
+
+Assign to `max` the value of the maximum between a and b  without changing its mutability.
+
+```rust
+let a = 10;
+let b = 100;
+let max = ...
+
+println! ("The maximum {}", max);
+```
+
+Remeber, **almost everything is an expression** that returns a value.
+
+---
+
+## `match` 
+- `switch` on steroids.
+
+```rust
+let x = 3;
+
+match x {
+    1 => println!("one fish"),  // <- comma required
+    2 => {
+        println!("two fish");
+        println!("two fish");
+    },  // <- comma optional when using braces
+    // we can match several patterns in one arm
+    3 | 4 => println!("three or four, dunno"),
+    _ => println!("no fish for you"), // "otherwise" case
+}
+```
+
+- `match` takes an expression (`x`) and branches on a list of `value => expression` statements.
+- The entire match evaluates to one expression.
+    - Like `if`, all arms must evaluate to the same type.
+- `_` is commonly used as a catch-all (cf. Haskell, OCaml)
+
+---
+
+# Workpoint 4 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="120" music="../music/workpoint_alt.mp3"></span>)
+
+Write a `match` that prints if a number is odd or even.
+
+```rust
+let n = 10;
+
+let t = match n {
+  ... =>
+  ... =>
+}
+
+println! ("{} is {}", n, t);
+```
+
+.card[.small[.center[![Match](../images/sep_match.png)]]]
+
+---
+## `match` pattern
+```rust
+let x = 3;
+let y = -3;
+let q = 10;
+
+let s = match (x, y) {
+    (1, 1) => "one".to_string(),
+    (2, j) => format!("two, {}", j),
+    (_, 3) => "three".to_string(),
+    (i, j) if i > 5 && j < 0 => "On guard!".to_string(),
+    // NB: note that we do not test x == 10 here!
+    (q, k) => format!("???: {} {}", q, k),
+};
+println!("{}", s);
+```
+
+- The matched expression can be any expression (l-value), including tuples and function calls.
+    - Matches can bind variables. `_` is a throw-away variable name.
+- You _must_ write an exhaustive match in order to compile.
+- Use `if`-guards to constrain a match to certain conditions.
+- Patterns can get very complex.
+
+---
+
+# Workpoint 5 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="300" music="../music/workpoint_extra.mp3"></span>)
+
+Calculate the factorial (n!) of a number. Panic if computation is not possible.
+
+```rust
+fn factorial (n: i32) -> u32 {
+  match n {
+    _ => unimplemented!()
+  }
+}
+
+fn main () {
+  println! ("10!: {} 0!: {} -10: {}", factorial(10), factorial(0), factorial(-10));
+}
+```
+
+You will have to perform a typecast.
+
+---
+
+## `while` 
+- Loops come in three flavors: `while`, `loop`, and `for`.
+    - `break` and `continue` exist just like in most languages
+
+- `while` works just like you'd expect:
+
+```rust
+let mut x = 0;
+while x < 100 {
+    x += 1;
+    println!("x: {}", x);
+}
+```
+
+While loops are not expressions.
+
+---
+## `loop` 
+- `loop` is equivalent to `while true`, a common pattern.
+    - Plus, the compiler can make optimizations knowing that it's infinite.
+
+```rust
+let mut x = 0;
+loop {
+    x += 1;
+    println!("x: {}", x);
+}
+```
+
+Loops are not expressions.
+
+---
+## `for` iteration
+- `for` is the most different from most C-like languages
+     - `for` loops use an _iterator expression_:
+     - `n..m` creates an iterator from n to m (exclusive).
+     - Some data structures can be used as iterators, like arrays and `Vec`s.
+
+```rust
+// Loops from 0 to 9.
+for x in 0..10 {
+    println!("{}", x);
+}
+
+let xs = [0, 1, 2, 3, 4];
+// Loop through elements in a slice of `xs`.
+for x in &xs {
+    println!("{}", x);
+}
+```
+
+For loops are not expressions.
+
+---
+# Workpoint 6 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="120" music="../music/workpoint.mp3"></span>)
+
+Assign to `max` the value of the maximum number in the array. Do not use any function.
+
+```rust
+let v = [1,2,4,5,23,54,6,7,34,6,6,3];
+let max = v[0];
+// ...
+
+println! ("The maximum {}", max);
+```
+
+Remeber array slices are iterators that return references to array elements.
+
+---
+class: split-50
+# Functions 
+
+```rust
+fn foo(x: T, y: U, z: V) -> T {
+    // ...
+}
+```
+.column[
+- `foo` is a function that takes three parameters:
+    - `x` of type `T`
+    - `y` of type `U`
+    - `z` of type `V`
+- `foo` returns a `T`.
+]
+
+.column[
+.card[.small[.center[![Function](../images/sep_function.png)]]]
+]
+
+<br>
+
+- Must explicitly define argument and return types.
+    - The compiler is actually smart enough to figure this out for you, but
+      Rust's designers decided it was better practice to force explicit function
+      typing.
+
+---
+## Functions Return
+
+- The final expression in a function is its return value.
+    - Use `return` for _early_ returns from a function.
+
+```rust
+fn square(n: i32) -> i32 {
+    n * n
+}
+
+fn squareish(n: i32) -> i32 {
+    if n < 5 { return n; }
+    n * n
+}
+
+fn square_bad(n: i32) -> i32 {
+    n * n;
+}
+```
+
+- The last one won't even compile!
+  - Why? 
+
+---
+
+# Workpoint 7 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="120" music="../music/workpoint_alt.mp3"></span>)
+
+1. Write the `maximum` function that returns the maximum of a and b
+
+  ```rust
+  let a = 10;
+  let b = 100;
+  let max = maximum (a, b);
+  
+  println! ("The maximum {}", max);
+  ```
+
+2.  Write the `maximum` function that returns the maximum element of `v`.
+
+  ```rust
+  let v = [1,2,4,5,23,54,6,7,34,6,6,3];
+  let max = maximum (&v);
+  
+  println! ("The maximum {}", max);
+  ```
+
+  Hint: You have to send a refernce of `v` to the function.
+
+---
+
+# Closures
+
+Similar to functions, but save context.
+
+```rust
+// types are inferred
+let max = |a, b| { if a > b { a } else { b } }
+// types are explicit
+let min = |a: i32, b: i32| { if a < b { a } else { b } }
+// there is only one expression
+let sum = |a, b| { a + b }
+```
+
+Example
+
+```rust
+let sum = |a, b| a+b;
+
+println! ("{}", sum (2, 3));
+```
+
+---
+
+## Iterator filters
+
+Closures are used for iterator, very much like in functional programming languages
+
+### Filter
+```rust 
+iterator.filter_map (self, |element| => { /* ... */ })
+```
+
+### Find
+
+```rust
+ietartor.find_map (self, |element| -> bool => { /* ... */ })
+```
+
+### Fold
+
+```rust
+iterator.fold (self, |value: T, element| -> T => { /* ... */ })
+```
+
+---
+
+# Workpoint 8 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="300" music="../music/workpoint_extra.mp3"></span>)
+
+Assign to `max` the value of the maximum number in the array. Use the `functional` programming style.
+
+```rust
+let v = [1,2,4,5,23,54,6,7,34,6,6,3];
+let max = ...
+
+println! ("The maximum {}", max);
+```
+
+Remeber array slices are iterators that return references to array elements.
+
+---
+
+
+# Modules
+
+1. `mod` statement
+
+  ```rust
+  mod security {
+      fn secure () {
+        // ...
+      }
+  }
+
+  fn main () {
+      security::secure ();
+  }
+  ```
+
+  Why does it not compile?
+
+2.  `mod` source
+
+  ```rust
+  mod security; // <- loads module from security.rs
+
+  fn main () {
+      security::secure ();
+  }
+  ```
+
+---
+
+# The standard library
+
+## Importing modules
+
+  - `use` statements may be placed anywhere
+  - they are valid inside the context where the were imported
+
+```rust
+use module::submodule;
+
+use module::submodule::APublicType;
+
+use module::submodule::{APublicType, AnotherPublicType, self}
+```
+
+## Equivalent of libc
+
+Rust has a standard library, more or less equivalent to the libc
+
+```rust
+/* this is imported by default *.
+use std;
+```
+---
+
+# Enum
+
+- An enum, or "sum type", is a way to express some data that may be one of several things.
+- Similar to the union type in C
+- Much more powerful than in Java, C, C++, C#...
+- Each enum variant can have optional payloads:
+    - no data (unit variant)
+    - named data (struct variant)
+    - unnamed ordered data (tuple variant)
+
+```rust
+enum Resultish {
+    Ok,
+    Warning { code: i32, message: String },
+    Err(String)
+}
+```
+
+.card[.small[.center[![Enum](../images/sep_enum.png)]]]
+
+---
+class: split-70
+# Enum `match`-ing
+
+- Enum variants are namespaced by their enum type: `Resultish::Ok`.
+    - You can import all variants with `use Resultish::*`.
+- Enums, much as you'd expect, can be matched on like any other data type.
+
+.column[
+```rust
+match make_request() {
+    Resultish::Ok =>
+        println!("Success!"),
+    Resultish::Warning { code, message } =>
+        println!("Warning: {}!", message),
+    Resultish::Err(s) =>
+        println!("Failed with error: {}", s),
+}
+```
+]
+
+.column[
+.card[.small_vertical[.center[![Enum](../images/sep_match_example.png)]]]
+]
+
+---
+class: split-70
+
+# `Option` .top_image[![Seatbelt](../images/seatbelt.png)] 
+
+- Rust has no NULL type
+- a variable of a type has to store a value of that actual type
+- a reference has to exist and point to a valid memory
+
+Use `Option` enum
+
+.column[
+```rust
+enum Option<T> {
+  Some(T)
+  None,
+}
+```
+
+T is any valid type
+]
+
+.column[
+.card[.small_vertical[.center[![Option](../images/sep_option.png)]]]
+]
+
+---
+
+## `Option` example
+
+Rust automatically imports  `Option::*`
+
+```rust
+fn integer_division (a:isize, b: isize) -> Option<isize> {
+  if b == 0 {
+    None
+  } else {
+    Some(a / b)
+  }
+}
+
+fn main () {
+  let x = 120;
+  let y = 7;
+  match integer_division (x, y) {
+    Some(d) => println! ("{}:{} = {}", x, y, d),
+    None => println! ("division by 0")
+  };
+}
+```
+
+---
+# Workpoint 9 .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="300" music="../music/workpoint.mp3"></span>)
+
+Write the factorial (n!) function without panicing if the computation is not possible. Use one single `println!`.
+
+```rust
+fn factorial (n: i32) -> Option<u32> {
+  match n {
+    _ => unimplemented!()
+  }
+}
+
+fn main () {
+  println! ("10!: {} 0!: {} -10!: {}", factorial(10), factorial(0), factorial(-10));
+  // prints 10!: 3628800, 0!: 0, 10!: not possible
+}
+```
+
+Hint: take a look at `if let`.
+
+---
+
+# Whats next?
+
+  - Structures
+  - Traits
+  - Generics
+
+---
+
+# Why did we get an error at `println!`? 
+
+The Rust macro system is a language extension:
+  - correct syntax
+  - must be a valid AST element
+
+Macro definition example:
+
+```rust
+macro_rules! the_macro {
+  /* pattern 1*/
+  () => {{
+      ...
+  }}
+  /* pattern 2*/
+  () => {{
+      ...
+  }}
+  // ...
+}
+```
+
+1. The pattren is made out of valid AST elements
+2. You can _run_ some code while you parse macros
+
+Is this possible in the C/C++ language?
+
+---
+
+## A quick overview of macro Patterns
+
+### Item Types
+
+ - `item`: an _[Item](https://doc.rust-lang.org/reference/items.html)_
+ - `block`: a _[BlockExpression](https://doc.rust-lang.org/reference/expressions/block-expr.html)_
+ - `stmt`: a _[Statement](https://doc.rust-lang.org/reference/statements.html)_ without the trailing semicolon (except for item statements that require semicolons)
+ - `pat`: a _[Pattern](https://doc.rust-lang.org/reference/patterns.html)_
+ - `expr`: an _[Expression](https://doc.rust-lang.org/reference/expressions.html)_
+ - `ty`: a _[Type](https://doc.rust-lang.org/reference/types.html#type-expressions)_
+ - `ident`: an [IDENTIFIER_OR_KEYWORD](https://doc.rust-lang.org/reference/identifiers.html)
+ - `path`: a _[TypePath](https://doc.rust-lang.org/reference/paths.html#paths-in-types) style path
+ - `tt`: a _[TokenTree](https://doc.rust-lang.org/reference/macros.html#macro-invocation)_ (a single [token](https://doc.rust-lang.org/reference/tokens.html) or tokens in matching delimiters (), [], or {})
+ - `meta`: an _[Attr](https://doc.rust-lang.org/reference/attributes.html)_, the contents of an attribute
+ - `lifetime`: a [LIFETIME_TOKEN](https://doc.rust-lang.org/reference/tokens.html#lifetimes-and-loop-labels)
+ - `vis`: a possibly empty _[Visibility](https://doc.rust-lang.org/reference/visibility-and-privacy.html)_ qualifier
+ - `literal`: matches - _[LiteralExpression](https://doc.rust-lang.org/reference/expressions/literal-expr.html)_
+
+```rust
+macro_rules! ex {
+  ($i:ident, $t:ty) => { let $i:$t; }
+}
+```
+---
+
+## A quick overview of macro Patterns
+
+### Repetitions
+
+Very similar to regular expressions
+
+
+ - `*` — indicates any number of repetitions.
+ - `+` — indicates any number but at least one.
+ - `?` — indicates an optional fragment with zero or one occurrences.
+
+```rust
+macro_rules! print_them {
+  (($i:ident,)* ) => { $( println! ("{}", $i);)* }
+}
+```
+
+---
+
+## A quick overview of macro Patterns
+
+### Further reading
+
+For more details, we recommend readung these books.
+
+__Steve Klabnik and Carol Nichols__, _The Rust Programming Language_, [Macros](https://doc.rust-lang.org/book/ch19-06-macros.html)
+
+__Daniel Keep__, _[The Little Book of Rust Macros](https://danielkeep.github.io/tlborm/book/README.html)_
+
+---
+
+# Lab Workpoint .top_image[![Work In Progress](../images/work_in_progress.png)] (<span class="workpoint" seconds="1200" music="../music/workpoint_alt.mp3"></span>)
+
+Write the `printf` macro
+ 1. write the definition
+ 2. write the implementation
+
+```rust
+macro_rules! printf {
+  () => { /* ... */ }
+}
+
+fn main () {
+  let firstname = "your first name";
+  let lastname = "your last name";
+  printf! (firstname); // <--- this line should not compile
+  printf! ("Hello from Rust");
+  printf! ("Hello, my name is {}", firstname);
+  printf! ("Hello, my full name is {} {}", firstname, lastname);
+  printf! ("Hello, my full name is {}", format! ("{}", firstname, lastname));
+}
+```
+
+Hint: use `print!` and the `tt` item type as a wildcard 
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="../script/playground.js">
+    </script>
+    <script src="../script/workpoint.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+		navigation: {
+				scroll: false
+			}
+    });
+    window.cPlaygroundUrl = "https://cplayground.com/";
+    window.playgroundUrl = "https://play.rust-lang.org/";
+    </script>
+  </body>
+</html>

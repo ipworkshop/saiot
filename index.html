@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>IoT Services and Architectures</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="style/style.css"></link>
+    <style>
+      
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# IoT Services and Architectures
+
+.title[.center[![IoT Services and Architectures](images/sep.png)]]
+
+.left[
+Based on: [Rust ISP 2019](https://github.com/newpavlov/rust-isp-2019) slides  
+Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
+]
+
+---
+
+# Layout
+
+An introduction to [Rust](https://www.rust-lang.org/), [TockOS](https://www.tockos.org/) and [Yocto](https://www.yoctoproject.org/).
+
+- [Course 1](course1) - An Introduction to the Rust Language
+- [Course 2](course2) - Meet U @ UPB (for an IoT Trade Fair board game)
+
+
+---
+
+# Team
+
+### Course & Labs
+- Alexandru Radovici
+- Alexandru Vaduva (Yocto), Siemens Romania
+
+### Materials
+- Ioana Culic
+
+### Tock Support
+- Teona Severin
+- Cosmin Radu
+
+---
+
+# Software
+
+- [Wyliodrin STUDIO](https://wyliodrin.studio) - development software
+- [Docker for Linux](link to dockerhub) - development software
+- one of the available kits
+
+### Linux
+Use any distribution that can run docker
+
+### Windows
+WSL also works, probably Ubuntu is the right choice
+
+### macOS
+Virtual Machine?
+
+<!-- - [Virtual Machine](https://drive.google.com/drive/u/2/folders/1thj-DwDWb8MgghW5rzOR6kRyGjY6G3xI) with all the software preinstalled
+- [Guide](https://drive.google.com/file/d/1hpJ2yysqKzfFEASeAWWFqKNST5CQ7XY7/view?usp=sharing) for setting up the software -->
+
+---
+
+# Kits
+
+Choose one of the kits, you will need them for the lab and project.
+
+| | Virtual | Just for fun | I'm in business |
+|-|---------|--------------|-----------------|
+| IoT Trade Fair board game | ✅ | ✅ | ✅ |
+| Device | virtual | [Arduino Nano BLE 33 Sense](https://www.st.com/en/evaluation-tools/32f412gdiscovery.html) | [STM32F412G Discovery Kit](https://www.st.com/en/evaluation-tools/32f412gdiscovery.html) |
+| Serial Cable | - | 3V3 TTL Serial | ST-Link (included) | 
+| Sensors Kit | virtual | Plusivo Nano | Plusivo Wireless |
+| Cost | Free | ~ 250 RON | ~ 350 RON | 
+
+Extra options for __I'm in business__
+ - __Wireless__ [STM32F413H Discovery Kit](https://www.st.com/en/evaluation-tools/32f413hdiscovery.html)
+ - __Risky__ [Digilent Arty-A7]() running an SiFive Freedom E310 RISC-V
+
+---
+
+ # Grading
+
+ - 50% lab papers
+ - 50% semster project, we'll have a jury
+   - don't worry, any kit works
+
+---
+
+# Subjects
+ - The [Rust](https://www.rust-lang.org/) Language
+ - Embedded systems - [Tock](https://tockos.org)
+  - OS
+  - C and Rust Apps
+ - Rust for Web
+  - [Actix](https://actix.rs/)
+  - [Rocket](https://rocket.rs/)
+ - [Yocto](https://www.yoctoproject.org/)
+
+---
+
+# Possible projects
+
+## Tock contribution
+ - new platform
+ - new drivers
+
+## IoT System running Tock
+
+anything that communicates in any way and uses some hardware running Tock
+
+---
+
+# Website
+
+- Course Materials - [SAIoT](https://ocw.cs.pub.ro/saiot)
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="script/playground.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+		navigation: {
+				scroll: false
+			}
+    });
+    window.cPlaygroundUrl = "https://cplayground.com/";
+    window.playgroundUrl = "https://play.rust-lang.org/";
+    </script>
+  </body>
+</html>
