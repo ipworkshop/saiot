@@ -26,13 +26,9 @@ Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
 
 # Overview
 
-1. Workpoint review
-2. Structures
-3. Traits
-4. Derive
-5. Secure References
-    - Ownership & Borrow
-    - Lifetimes
+1. Generics
+2. The Pointer Problem
+3. Lifetimes Annotations
 
 ---
 # Generics
@@ -140,7 +136,8 @@ fn digital_write(p: &impl Pin, value: usize) {
   - e.g. you can't stipulate that a `T` must not be `Clone`.
 
 ```rust
-fn digital_write<P: Output>(p: P, value: usize) {
+fn digital_write<P: Configure + Output>(p: P, value: usize) {
+   p.make_output ();
    if value == 1 {
        p.set ();
    } else {
@@ -161,6 +158,16 @@ fn digital_write<P: Output>(p: P, value: usize) {
 
 ```rust
 struct MyDriver<P: Pin> {
+    pin1: &'static P,
+    pin2: &'static P,
+    // ...
+}
+```
+
+And without traiut bounds
+
+```rust
+struct MyDriver<P> {
     pin1: &'static P,
     pin2: &'static P,
     // ...
@@ -220,7 +227,7 @@ trait Child: Parent {
 ```
 
 ---
-# Lifetimes
+# Lifetimes Annotations
 
 - Lifetimes generally have a pretty steep learning curve.
 - Don't worry if you don't understand these right away.
@@ -262,12 +269,11 @@ fn bar<'a>(x: &'a i32) {
 ```
 
 ---
-### Why lifetimes are useful?
+### Question .top_image[![Questions](../images/question.svg)]
 
-How do you use free?
+Q1: How do you use free?
 
 ```c
-// program: toad-barracuda-mammoth
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -278,17 +284,17 @@ int main ()
 {
     char * s = strdup ("ana has apples");
     char *wfw = without_first_word (s);
-    // free (s);
+    // free (s);   <-- before printf
     printf ("%s\n", wfw);
-    // free (wfw);
+    // free (wfw); <-- after printf
 }
 
 ```
 
 ---
-### Why lifetimes are useful?
+### Question .top_image[![Questions](../images/question.svg)]
 
-How do you use free?
+Q2: How do you use free?
 
 ```c
 // program: bear-salamander-anteater
@@ -309,17 +315,17 @@ int main ()
 {
     char * s = strdup ("ana has apples");
     char *wfw = without_first_word (s);
-    // free (s);
+    // free (s);    <-- before printf
     printf ("%s\n", wfw);
-    // free (wfw);
+    // free (wfw);  <-- after printf
 }
 
 ```
 
 ---
-### Why lifetimes are useful?
+### Question .top_image[![Questions](../images/question.svg)]
 
-How do you use free?
+Q3: How do you use free?
 
 ```c
 // program: oyster-guanaco-dinosaur
@@ -340,9 +346,9 @@ int main ()
 {
     char * s = strdup ("ana has apples");
     char *wfw = without_first_word (s);
-    // free (s);
+    // free (s);   <-- before printf
     printf ("%s\n", wfw);
-    // free (wfw);
+    // free (wfw);  <-- before printf
 }
 
 ```
@@ -424,6 +430,29 @@ fn main() {
 ```
 
 ---
+### Question .top_image[![Questions](../images/question.svg)]
+
+Can we use free for `s1` and `s2` before `printf`?
+
+```c
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+
+char * smaller (char *s1, char *s2);
+
+int main () {
+    char *s1 = strdup ("ip");
+    char *s2 = strdup ("workshop");
+    char *small = smaller (s1, s2);
+    // free (s1);
+    // free (s2);
+    printf ("%s\n", small);
+}
+
+```
+
+---
 ### Multiple Lifetime Parameters
 
 ```c
@@ -465,7 +494,7 @@ fn main() {
 ```
 
 ---
-### Multiple Lifetime Parameters
+### Question .top_image[![Questions](../images/question.svg)]
 
 Why can't we free s2?
 
@@ -487,7 +516,7 @@ fn main() {
 ---
 ### Multiple Lifetime Parameters
 
-Why can't we free s2?
+We now can free s2. 
 
 ```rust
 fn append <'a, 'b> (s: &'a mut String, n: &'b str) -> &'a str {
@@ -614,6 +643,30 @@ impl<'a, 'b> Foo<'a, 'b> {
 3. If the receiver has type __&Self__ or __&mut Self__, then the __lifetime of__ that reference to __Self__ is assigned to __all elided output lifetime__ parameters.
 
 .card[.small[.center[![Borrow Rules](../images/sep_elision_rules.png)]]]
+
+---
+
+# Workpoint 1 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+```rust
+struct Professor {
+    firstname: String,
+    lastname: String
+}
+
+trait Person {
+    fn get_name (&self) -> &str;
+}
+
+fn main() {
+    let p = Professor::new ("The", "Name");
+    let name = p.get_name ();
+    println! ("{}", name);
+}
+```
+
+Hint: You are returning a reference, the _original_ value has to be valid as long as the reference is used. Tune the struct for that.
+
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
