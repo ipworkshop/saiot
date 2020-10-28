@@ -667,6 +667,267 @@ fn main() {
 
 Hint: You are returning a reference, the _original_ value has to be valid as long as the reference is used. Tune the struct for that.
 
+---
+
+# Workpoint 2 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Implement the output trait so that it prints the state like:
+
+```
+    PIN: 0 STATE 0
+    ...
+```
+
+```rust
+trait Output {
+    fn set (&self);
+    fn clear (&self);
+}
+
+fn digital_write (pin: P) {
+    /// use the Output trait
+}
+
+fn main() {
+    let arduino_pins = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 0);
+    }
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 1);
+    }
+}
+```
+
+---
+
+# Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Modify the previous example so that some pins in the `arduino_pins` array are not available.
+
+```rust
+fn main() {
+    // Hint: use Option
+    let arduino_pins = [...];
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 0);
+    }
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 1);
+    }
+}
+```
+
+---
+
+# Workpoint 4 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Define a `ArduinoPin` struct and store its value.
+
+```rust
+struct ArduinoPin {
+    pin: u32,
+    state: u32
+}
+
+trait Output {
+    fn set (&self);
+    fn clear (&self);
+    fn toggle (&self);
+}
+
+fn main() {
+    // Hint: use Option
+    let arduino_pins: [ArduinoPin; 14] = [...];
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 0);
+        println! ("{}", arduino_pins[pin_index]);
+    }
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 1);
+        println! ("{}", arduino_pins[pin_index]);
+    }
+}
+```
+
+Hint: You might have to modify the `Output` trait.
+
+---
+# Mutability
+
+All Tock traits use `&self` to be able to share a driver with several other drivers.
+
+Interior mutability:
+- Cell<T> (`core::cell::Cell`)
+- OptionalCell<T> (`kernel::common:cells::OptionalCell`)
+- TakeCell<T> (`kernel::common::cells::TakeCell`)
+
+.right[
+.card[.small_vertical[![Cell](../images/sep_cell.png)]]
+.card[.small_vertical[![OptionalCell](../images/sep_optionalcell.png)]]
+.card[.small_vertical[![TakeCell](../images/sep_takecell.png)]]
+]
+
+---
+
+## Cell
+
+Store a mutable value inside a immutable structure
+
+```rust
+use kernel::{Driver, AppId, ReturnCode};
+use core::cell::Cell;
+
+/// Each driver is identified by a unique number
+///
+/// numbers higher than 0xa0000000 are unused by standard drivers
+pub const DRIVER_NUM: usize = 0xa0000000;
+
+/// The Hello structure
+pub struct Hello {
+    nr: Cell<usize>
+}
+
+
+/// The hello implementation
+impl Hello {
+    pub fn new() -> Hello {
+        Hello {
+            nr: Cell::new (0)
+        }
+    }
+}
+
+/// The driver system calls implementation
+impl Driver for Hello {
+    /// subscribe and allow will use the default implementation
+
+    /// command syscall
+    fn command(&self, command_num: usize, _data1: usize, _data2: usize, _app_id: AppId) -> ReturnCode {
+        match command_num {
+            // command_num 0 is used to verify if the driver exists
+            0 => ReturnCode::SUCCESS,
+
+            2 => {
+                // modify number
+                self.nr.set (self.nr.get () + 1);
+                ReturnCode::SuccessWithValue { value: self.nr.get() }
+            }
+
+            // the command number is not defined
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+```
+
+---
+
+# Workpoint 5 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Solve the previous workpoint without modifiying the `Output` trait.
+
+```rust
+struct ArduinoPin {
+    pin: u32,
+    state: u32
+}
+
+trait Output {
+    fn set (&self);
+    fn clear (&self);
+    fn toggle (&self);
+}
+
+fn main() {
+    // Hint: use Option
+    let arduino_pins: [ArduinoPin; 14] = [...];
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 0);
+        println! ("{}", arduino_pins[pin_index]);
+    }
+
+    for pin_index in 0..arduino_pins.len () {
+        digital_write (arduino_pins[pin_index], 1);
+        println! ("{}", arduino_pins[pin_index]);
+    }
+}
+```
+
+Hint: use mutability
+
+---
+# Workpoint 6 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Make this work
+
+```rust
+struct Professor {
+    firstname: String,
+    lastname: String
+}
+
+impl Professor {
+    pub fn set_firstname (&self, new_name: &str) {
+
+    }
+
+    pub fn set_lastname (&self, new_name: &str) {
+        
+    }
+}
+
+trait Person {
+    fn get_name (&self) -> &str;
+}
+
+fn main() {
+    let p = Professor::new ("The", "Name");
+    p.set_firstname ("New");
+    let name = p.get_name ();
+    println! ("{}", name);
+}
+```
+
+---
+# Workpoint 7 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Make this work
+
+```rust
+struct Professor {
+    firstname: &str,
+    lastname: &str
+}
+
+impl Professor {
+    pub fn set_firstname (&self, new_name: &str) {
+
+    }
+
+    pub fn set_lastname (&self, new_name: &str) {
+        
+    }
+}
+
+trait Person {
+    fn get_name (&self) -> &str;
+}
+
+fn main() {
+    let p = Professor::new ("The", "Name");
+    p.set_firstname ("New");
+    let name = p.get_name ();
+    println! ("{}", name);
+}
+```
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
