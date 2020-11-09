@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Course 4 - Tock</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../style/style.css"></link>
+    <style>
+      
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Rust Generics and Lifetimes Annotations
+
+.title[.center[![SecureEmbeddedProgramming](../images/sep.png)]]
+
+.left[
+Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
+]
+
+---
+
+# Overview
+
+1. Tock Running Environment
+2. Building an application
+3. Running an example
+
+---
+
+# Tock Running Environment
+
+You will have to download:
+- [Renode](https://github.com/renode/renode/releases/tag/v1.11.0) - select renode-1.11.0.linux-portable.tar.gz
+ for linux then unpack the archive using 
+
+ ```bash
+ tar xvf renode-1.11.0.linux-portable.tar.gz
+ ```
+
+---
+# Building an application
+
+Go to the directory of examples from libtock-c.
+
+Go to the c_hello app then run the make command.
+
+
+---
+# Compile the kernel with the app
+
+Go to the directory of the stm32f4 and add the following lines under include in the Makefile.
+
+```bash
+APP=../../../libtock-c/examples/blink/build/cortex-m4/cortex-m4.tbf
+KERNEL=$(TOCK_ROOT_DIRECTORY)/target/$(TARGET)/debug/$(PLATFORM).elf
+KERNEL_WITH_APP=$(TOCK_ROOT_DIRECTORY)/target/$(TARGET)/debug/$(PLATFORM)-app.elf
+```
+
+And replace .PHONY: program with those lines
+
+```bash
+.PHONY: program
+program: $(TOCK_ROOT_DIRECTORY)target/$(TARGET)/debug/$(PLATFORM).elf
+	arm-none-eabi-objcopy --update-section .apps=$(APP) $(KERNEL) $(KERNEL_WITH_APP)
+```
+Now run the make program command.
+
+
+---
+
+# Setting up the application binary for Renode
+
+After unpacking go to /renode_1.11.0_portable/scripts/single-node and open with a text editor "stm32f4_discovery.resc"
+
+Replace the path with the path to the binary of the kernel built with the application.
+
+Old:
+
+```bash
+$bin?=@https://dl.antmicro.com/projects/renode/stm32f4discovery.elf-s_445441-827a0dedd3790f4559d7518320006613768b5e72
+```
+
+New (this is an example, please update the path to yours):
+
+```bash
+$bin?=@~/git/tock2/tock/target/thumbv7em-none-eabi/debug/stm32f4discovery-app.elf
+```
+---
+
+# Setting up the application binary for Renode
+
+Replace the following line:
+
+Old:
+
+```bash
+showAnalyzer sysbus.uart4
+```
+
+New:
+```bash
+showAnalyzer sysbus.uart2
+```
+
+---
+
+# Running the application
+
+In the renode unpacked directory start renode
+
+```bash
+./renode
+```
+Now to start the kernel with your app, use the following command:
+
+```bash
+s @scripts/single-node/stm32f4_discovery.resc
+```
+
+
+
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="../script/playground.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+		navigation: {
+				scroll: false
+			}
+    });
+    window.cPlaygroundUrl = "https://cplayground.com/";
+    window.playgroundUrl = "https://play.rust-lang.org/";
+    </script>
+  </body>
+</html>
