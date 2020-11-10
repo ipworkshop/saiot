@@ -37,12 +37,26 @@ You will have to download:
 - [Renode](https://github.com/renode/renode/releases/tag/v1.11.0) - select renode-1.11.0.linux-portable.tar.gz
  for linux then unpack the archive using:
 
- ```bash
- tar xvf renode-1.11.0.linux-portable.tar.gz
+```bash
+wget https://github.com/renode/renode/releases/download/v1.11.0/renode-1.11.0.linux-portable.tar.gz
+
+tar xvf renode-1.11.0.linux-portable.tar.gz
  ```
 
 - [Tock Virtual Machine](https://ctipub-my.sharepoint.com/:u:/g/personal/alexandru_radovici_upb_ro/EZfcjTnz199Jjk5LzAxmCkABJrZR86VLnzfqLhb2Gby3LA?e=6O3Mw0) - Import Appliance
     - Windows: Make sure you select __Allow__ when you get a question from the Firewall
+
+---
+# Tock Running Environment
+
+To connect and use Renode, please access virtualbox and forward the telnet port
+
+.center[.title[![Remote SHH Link](../images/network_settings.png)]]
+
+---
+# Tock Running Environment
+
+.center[.title[![Remote SHH Link](../images/port_forwarding_rule.png)]]
 
 ---
 # Building an application
@@ -135,12 +149,23 @@ showAnalyzer sysbus.uart2
 
 # Running the application
 
-In the renode unpacked directory start renode
+Connect via ssh to the tock virtual machine
+
+```bash
+ssh localhost:2000
+```
+
+Go to renode-1.11.0.linux-portable and run renode
 
 ```bash
 ./renode
 ```
-Now to start the kernel with your app, use the following command:
+
+---
+
+# Running the application
+
+Open a new connection to the localhost:1234 using telnet and then use the following command to start your application.
 
 ```bash
 s @scripts/single-node/stm32f4_discovery.resc
