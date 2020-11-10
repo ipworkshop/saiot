@@ -35,11 +35,14 @@ Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
 
 You will have to download:
 - [Renode](https://github.com/renode/renode/releases/tag/v1.11.0) - select renode-1.11.0.linux-portable.tar.gz
- for linux then unpack the archive using 
+ for linux then unpack the archive using:
 
  ```bash
  tar xvf renode-1.11.0.linux-portable.tar.gz
  ```
+
+- [Tock Virtual Machine](https://ctipub-my.sharepoint.com/:u:/g/personal/alexandru_radovici_upb_ro/EZfcjTnz199Jjk5LzAxmCkABJrZR86VLnzfqLhb2Gby3LA?e=6O3Mw0) - Import Appliance
+    - Windows: Make sure you select __Allow__ when you get a question from the Firewall
 
 ---
 # Building an application
@@ -51,6 +54,19 @@ Go to the c_hello app then run the make command.
 ```bash
 make
 ```
+
+.center[.title[![Remote SHH Link](../images/build_app.png)]]
+
+---
+# Compile the kernel with the app
+
+Change the branch of the tock repository
+
+```bash
+git checkout saiot
+```
+
+.center[.title[![Remote SHH Link](../images/change_branch.png)]]
 
 ---
 # Compile the kernel with the app
@@ -113,6 +129,8 @@ New:
 showAnalyzer sysbus.uart2
 ```
 
+.center[.title[![Remote SHH Link](../images/renode_script.png)]]
+
 ---
 
 # Running the application
@@ -127,6 +145,8 @@ Now to start the kernel with your app, use the following command:
 ```bash
 s @scripts/single-node/stm32f4_discovery.resc
 ```
+
+.center[.title[![Remote SHH Link](../images/renode_command.png)]]
 
 
 
