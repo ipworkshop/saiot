@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Course 5 - Tock Capsules & Asynchronous</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../style/style.css"></link>
+    <style>
+      
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Tock Capsules & Asynchronous
+
+.title[.center[![SecureEmbeddedProgramming](../images/sep.png)]]
+
+.left[
+Alexandru Radovici ilustrations by [Mieuneli](http://miau.laura.ro)
+]
+
+---
+
+# Overview
+
+1. Tock Stack Review
+2. Capsules Types
+3. Asynchronous Actions
+
+---
+
+# Tock Stack Review
+
+.splash[.center[![Stack](../images/tock-stack.png)]]
+
+---
+
+# Tock Folders Review
+
+In `/home/tock` you have:
+```bash
++-- tock                # original Tock repositories
+|   +-- tock                # kernel
+|   +-- libtock-c           # C userspace
+|   +-- libtock-rs          # Rust userspace
+|
++-- /tock-saiot           # our Tock version (with POSIX and Renode emulation)
+|   +-- tock                # kernel
+|   +-- libtock-c           # C userspace
+```
+
+---
+
+## Tock kernel source
+
+In `/home/tock-posix/tock` you have:
+```bash
++-- tock            # kernel
+|   +-- arch            # code specific to MCUs (ARM, RISC-V)
+|   +-- boards          # code specific to boards (STM32F412G Discovery Kit)
+|   |   +-- stm32f4discovery     # the stm32f4 emulated board
+|   |   +-- ...         # other boards
+|   +-- capsules        # drivers
+|   +-- chips           # code specific to MCUs (STM32F412G, E310, )
+|   +-- doc             # documentation
+|   +-- kernel          # actual kernel (scheduler, ipc, memory)
+|   +-- libraries       # libraries used by all the source code
+|   +-- tools           # scripts for testing on other tools
+|   +-- vagrant         # VM setup (different from ours)
+```
+
+---
+
+# Tock Capsules
+
+There are two types of capsules:
+  1. API
+    - export syscalls to user space
+    - implement `Driver`
+    - Examples: `led`, `gpio`, ...
+
+    TODO image
+
+  2. Service
+    - used by other capsules
+    - implement one or more of the HILs
+    - usually talk to some hardware device
+    - Examples: `l3gd20`, `lsm303dlhc`, ...
+
+    TODO image
+
+---
+
+## Workpoint 1 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Implement a temperature sensors capsule
+
+1. Write a struct that implements the `Temperature` HIL
+  - next to `main.rs` write a file `temperature_emualtion.rs`
+2. Add the `temperature` driver to `main.rs` and link it to your driver
+  - take a look at `main.rs` for `stm32f412gdiscovery`
+3. Load the `sensors` application
+  - in `libtock-c/examples/sensors`
+
+HINT: the sensor value returned will be a static value
+
+---
+
+## Workpoint 2 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Modify the previous example to return a different value every time you query the temperature.
+
+HINT: there is no random number generator, but you can count how many times a query has been made
+
+---
+
+# Asynchronous Development
+
+Similar to NodeJS event loop
+  - usually one single thread
+  - request something
+  - do something else
+  - get a notification
+  - do something with the requested response
+
+
+---
+
+## Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Implement a loop in the `hello` driver.
+
+```rust
+/// The driver system calls implementation
+impl Driver for Hello {
+    /// subscribe and allow will use the default implementation
+    /// command syscall
+    fn command(&self, command_num: usize, _data1: usize, _data2: usize, _app_id: AppId) -> ReturnCode {
+        match command_num {
+            // command_num 0 is used to verify if the driver exists
+            0 => ReturnCode::SUCCESS,
+            1 => { debug! ("Print Hello"); ReturnCode::SUCCESS }
+            2 => {
+                // modify number
+                loop {
+                    self.nr.set (self.nr.get () + 1);
+                }
+                ReturnCode::SuccessWithValue { value: self.nr.get() }
+            }
+            // the command number is not defined
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+```
+
+What is the problem with this?
+
+---
+## Tock is asynchronous
+
+- Apps may be preempted
+- Drivers may not be interrupted
+  - no use of delay in drivers 
+
+.center[![Do not disturb](../images/do-not-disturb.jpg)]
+
+---
+## Asynchronous Development Principles
+
+Like an event loop
+
+- schedule next action
+- wait for events
+- repeat
+
+.right[.card[.large[![Asynchronous](../images/sep_async.png)]]]
+
+---
+
+## How drivers work
+
+.large[.center[![Asynchronous Development](../images/asynchronous.svg)]]
+
+---
+class: split-50
+
+## Asynchronous HIL
+
+.column[
+Peripheral trait
+  - exposes actions
+
+PeripheralClient client trait
+  - receives notification
+]
+
+.column[.center[.splash_vertical[![Scheduler](../images/syscall.svg)]]]
+
+---
+
+### Actual HIL
+
+You request actions from the peripheral.
+
+```rust
+trait Peripheral {
+    fn request_action (&self, /* ... */) -> ReturnCode;
+    // ...
+    fn set_client (&self, client: &'static dyn PeripheralClient);
+}
+```
+
+### HIL's Client(s)
+
+The peripheral will call this function when the action is done.
+
+```rust
+trait PeripheralClient {
+    fn action_done (&self, /* ... */);
+    // ...
+}
+```
+
+---
+## Asynchronous HIl usage
+
+In a driver, when the user space requests a command:
+  1. the driver makes a request to the HIL
+  2. returns control to the kernel (so that processes can run)
+  3. the driver is eventually notified via the HIL's client
+  4. the driver notifies the app
+  5. the app has to yield to get the callback
+
+```rust
+impl Driver for TheDriver {
+    fn command(&self, command_num: usize, _data1: usize, _data2: usize, _app_id: AppId) -> ReturnCode {
+        match command_num {
+            0 => ReturnCode::SUCCESS,
+            1 => self.peripheral.request_action (/* ... */) // this usually returns a ReturnCode
+            _ => ReturnCode::ENOSUPPORT
+        }
+    }
+    // ...
+}
+
+impl PeripheralClient for TheDriver {
+    fn action_done (&self) {
+        // ... notify the process
+    }
+}
+```
+
+How do we notify the process?
+
+---
+## Optional Cell
+
+Similar to `Cell<Option<T>>`, but has some useful functions:
+
+.right[.card[.large_vertical[![OptionalCell](../images/sep_optionalcell.png)]]]
+
+---
+### Subscribe
+
+We use the subscribe mechanism:
+
+```rust
+struct TheDriver {
+    callback: OptionalCell<Callback>
+    // ...
+}
+
+impl Driver for TheDriver {
+    fn subscribe(&self, subscribe_num: usize, callback: Option<Callback>, appid: AppId) -> ReturnCode {
+        match command_num {
+            0 => self.callback.put (callback)
+        }
+    }
+    // ...
+}
+
+impl PeripheralClient for TheDriver {
+    fn action_done (&self, /* ... */) {
+        let data1 = ..., data2 = ..., data3 = ...
+        self.callback.map (|callback| callback.schedule (data1, data2, data3));
+    }
+}
+```
+
+---
+### Subscribe in user space app
+
+In the app, you have to subscribe first:
+
+```c
+static event_from_driver (int data1, int data2, int data3, void *user_data) {
+    // ...
+}
+
+int main ()
+{
+    void *user_data = ... // may be NULL
+    subscribe (THE_DRIVER_NUMBER, 0, event_from_driver, user_data);
+    command (THE_DRIVER_NUMBER, 1, 0, 0);
+    yield ();
+}
+```
+
+---
+
+class: split-50
+### System Call Pattern
+
+.column[
+1. Allow a buffer
+2. Subscribe
+3. Send a Command
+4. Yield
+5. Verify if your callback was called
+  - yes, continue
+  - no, yield again
+]
+
+.column[
+.right[.card[.large_vertical[![System Call Pattern](../images/sep_syscall_pattern.png)]]]
+]
+
+---
+# Workpoint 4 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Make the `Hello` driver asynchronous, it returns the counter via a subscribe.
+
+```rust
+/// The driver system calls implementation
+impl Driver for Hello {
+    /// allow will use the default implementation
+    fn subscribe(&self, subscribe_num: usize, callback: Option<Callback>, appid: AppId) -> ReturnCode {
+        match command_num {
+            0 => // set the callback
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+    /// command syscall
+    fn command(&self, command_num: usize, _data1: usize, _data2: usize, _app_id: AppId) -> ReturnCode {
+        match command_num {
+            // command_num 0 is used to verify if the driver exists
+            0 => ReturnCode::SUCCESS,
+            1 => { debug! ("Print Hello"); ReturnCode::SUCCESS }
+            2 => {
+                // modify number
+                self.nr.set (self.nr.get () + 1);
+                // schedule the callback
+                ReturnCode::SUCCESS
+            }
+            // the command number is not defined
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+```
+
+---
+class: split-70
+
+## Delay in drivers
+
+Write a driver that prints hello every second
+
+We have to use the `Alarm` HIL as a generic type for our driver.
+
+.column[
+```rust
+use kernel::hil::time::{Alarm, AlarmClient, Frequency};
+use kernel::debug;
+use kernel::{AppId, Driver, ReturnCode, Grant};
+
+pub struct Hello<A: 'static + Alarm<'static>> {
+    alarm: &'static A,
+}
+
+impl<A: 'static + Alarm<'static>> Hello<A> {
+    pub fn new(alarm: &'static A) -> Hello<A> {
+        Hello { alarm: alarm }
+    }
+}
+```
+
+The `Alarm` trait cannot be used as `&'static dyn Alarm` due to its implementation (it has an assoctiated type `Alarm::Frequency`)
+
+]
+
+.column[
+.right[.card[.small_vertical[![Alarm](../images/sep_alarm.png)]]]
+]
+
+---
+
+## Alarm Implementation
+
+Implement `Driver` and `AlarmClient`
+
+```rust
+impl<A: 'static + Alarm<'static>> Driver for Hello<A> {
+    fn command(
+        &self,
+        command_num: usize,
+        _data1: usize,
+        _data2: usize,
+        _app_id: AppId,
+    ) -> ReturnCode {
+        match command_num {
+            0 => ReturnCode::SUCCESS,
+            1 => {
+                // set an alarm
+                self.alarm.set_alarm(
+                    self.alarm.now(),
+                    <A::Frequency>::frequency() / 1000);
+                ReturnCode::SUCCESS
+            }
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+
+impl<A: 'static + Alarm<'static>> AlarmClient for Hello<A> {
+    fn alarm(&self) {
+        debug! ("hello");
+        // next alarm
+        self.alarm.set_alarm(
+            self.alarm.now(),
+            <A::Frequency>::frequency() / 1000);
+    }
+}
+```
+
+---
+## Set the timeout
+
+The `<A::Frequency>::frequency()` returns the MCU's alarm frequency, meaning how many tics
+the timer will have per second.
+
+`alarm.now ()` returns the current tics number
+
+---
+## Intialize the alarm using `VirtualAlarm` 
+
+In `main.rs` add the generic type to `Hello`
+
+```rust
+let hello_alarm = static_init!(
+    VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2>,
+    VirtualMuxAlarm::new(mux_alarm)
+);
+
+let hello = static_init!(
+    hello::Hello<VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2<'static>>>,
+    hello::Hello::new(hello_alarm)
+);
+```
+
+---
+# Workpoint 6 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Write a driver that recevies a letter and prints its Morse Code using the correct timeouts
+  - It will print . for a point and wait 1 time unit
+  - it will print - for a line and wait 3 time units
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="../script/playground.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+		navigation: {
+				scroll: false
+			}
+    });
+    window.cPlaygroundUrl = "https://cplayground.com/";
+    window.playgroundUrl = "https://play.rust-lang.org/";
+    </script>
+  </body>
+</html>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Course 5 - Renode</title>
+    <title>Course 5 - Renode & Tock Drivers API</title>
     <meta charset="utf-8">
     <link rel="stylesheet" href="../style/style.css"></link>
     <style>
@@ -13,7 +13,7 @@
 
 class: center, middle
 
-# Tock Drivers API
+# Renode & Tock Drivers API
 
 .title[.center[![SecureEmbeddedProgramming](../images/sep.png)]]
 
@@ -25,38 +25,86 @@ Alexandru Radovici, Cosmin Daniel Radu, ilustrations by [Mieuneli](http://miau.l
 
 # Overview
 
-1. Simple Driver 
-2. System calls
-3. Grants
+1. Renode
+2. Simple Driver 
+3. System calls
 
 ---
 
-# Tock Running Environment
+# Renode
 
-You will have to download:
-- [Renode](https://github.com/renode/renode/releases/tag/v1.11.0) - select renode-1.11.0.linux-portable.tar.gz
- for linux then unpack the archive using:
+SoC Emulator
+  - Very simple emulation of Cortex-M and STM32F4Discover
+  - Patches required for Tock (`stm32f4xx` chip) and Renode (pending interrupts)
 
-```bash
-wget https://github.com/renode/renode/releases/download/v1.11.0/renode-1.11.0.linux-portable.tar.gz
+Use our patched [Renode](https://github.com/UPBIoT/renode-iot)
 
-tar xvf renode-1.11.0.linux-portable.tar.gz
- ```
-
-- [Tock Virtual Machine](https://ctipub-my.sharepoint.com/:u:/g/personal/alexandru_radovici_upb_ro/EZfcjTnz199Jjk5LzAxmCkABJrZR86VLnzfqLhb2Gby3LA?e=6O3Mw0) - Import Appliance
-    - Windows: Make sure you select __Allow__ when you get a question from the Firewall
+TODO poze renode
 
 ---
-# Tock Running Environment
 
-To connect and use Renode, please access virtualbox and forward the telnet port
+## Using Renode
 
+- Use the [Tock Virtual Machine](https://ctipub-my.sharepoint.com/:u:/g/personal/alexandru_radovici_upb_ro/EZfcjTnz199Jjk5LzAxmCkABJrZR86VLnzfqLhb2Gby3LA?e=6O3Mw0) 
+  - Import Appliance
+  - Windows: Make sure you select __Allow__ when you get a question from the Firewall
+
+- Clone the patched veriosn of [Renode](https://github.com/UPBIoT/renode-iot)
+  - installing [mono](https://github.com/UPBIoT/renode-iot) might be necessary
+
+---
+## Virtual Machine Settings
+
+The provided virtual machine has no graphical user interface
+  - The SoC control will be acessible via `telnet`
+  - use the `telnet` command or `putty`
+
+Renode has two consoles:
+  - `emulator output` (the console where you run `renode`)
+    - displays serial port output
+    - information messages
+  - `SoC control` (`telent`)
+    - emualtor control commands
+
+---
+
+## Setup virtualbox and forward the telnet port
 .center[.title[![Remote SHH Link](../images/network_settings.png)]]
 
+Network settings
+
 ---
-# Tock Running Environment
+### Port forwarding rules
 
 .center[.title[![Remote SHH Link](../images/port_forwarding_rule.png)]]
+
+Forward host port 1234 to guest port 1234
+
+---
+
+## Running the Tock kernel
+
+The steps for running the Tock kernel using the emulator are:
+
+  1. Compile the patched Tock kernel (`boards/stm32f4`)
+  2. Setup the emulator script
+  3. Run the emulator
+
+---
+
+### Compile the patched kernel
+
+In `tock-posix/tock` make sure you are on the `saiot` branch.
+
+```bash
+```
+
+Go to `boards/stm32f4` and run `make`
+
+```bash
+```
+
+### Setting up the emulator
 
 ---
 # Building an application
@@ -72,7 +120,7 @@ make
 .center[.title[![Remote SHH Link](../images/build_app.png)]]
 
 ---
-# Compile the kernel with the app
+### Compile the kernel with the app
 
 Change the branch of the tock repository
 
