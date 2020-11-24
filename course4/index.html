@@ -41,16 +41,19 @@ You will have to install:
 - [VirtualBox](https://www.virtualbox.org/) - a Linux environment&sup1; with the Tock setup
   - [Extension Pack](https://download.virtualbox.org/virtualbox/6.1.12/Oracle_VM_VirtualBox_Extension_Pack-6.1.12.vbox-extpack) - you will be able to see you USB devices in guest virtual machine
 
-- [Tock Virtual Machine](https://drive.google.com/drive/u/2/folders/1thj-DwDWb8MgghW5rzOR6kRyGjY6G3xI) - Import Appliance
+- [Tock Virtual Machine](https://wyliodrinstudio.s3.eu-central-1.amazonaws.com/images/Tock-SAIoT.ova) - Import Appliance
+    - [Modified](https://github.com/UPBIoT/renode-iot)&sup2; version of [Renode](https://renode.io/)
+    - [Modified](https://github.com/UPBIoT/tock/tree/saiot)&sup2; version of Tock to run in [Renode](https://renode.io/)
     - Windows: Make sure you select __Allow__ when you get a question from the Firewall
 
-&sup1;If you are running Linux, this step is recommended, not necessary.
+&sup1;If you are running Linux, this step is recommended, not necessary.<br>
+&sup2;You do need these for simulating T
 
 ---
 ## Virtual Box
 
 1. Install the [Extension Pack](https://download.virtualbox.org/virtualbox/6.1.12/Oracle_VM_VirtualBox_Extension_Pack-6.1.12.vbox-extpack)
-2. Import Appliance [Tock-Dev](Tock-Dev.ova)
+2. Import Appliance [Tock-SAIoT](https://wyliodrinstudio.s3.eu-central-1.amazonaws.com/images/Tock-SAIoT.ova)
 
 
 
@@ -107,7 +110,7 @@ In `/wyliodrin` you have:
 |   +-- libtock-c           # C userspace
 |   +-- libtock-rs          # Rust userspace
 |
-+-- /tock-posix           # our Tock version (with POSIX emulation)
++-- /tock-saiot           # our Tock version (with POSIX emulation and emulator modification)
 |   +-- tock                # kernel
 |   +-- libtock-c           # C userspace
 ```
@@ -171,38 +174,40 @@ class: split-50
 
 # Build kernel
 
-In `boards/linux_process` run:
+Use the `tock-saiot` folder. The kernel folder is called 'tock', the apps folder is called `libtock-c`.
+
+In `boards/stm32f4discovery` run:
 
 ```bash
-tock@tock-dev:~/tock-posix/tock/boards/linux_process$ make flash-debug
-Compiling tock-cells v0.1.0 (/home/alex/projects/tock-posix/tock/libraries/tock-cells)
-Compiling libc v0.2.80
-Compiling bitflags v1.2.1
-Compiling tock-registers v0.5.0 (/home/alex/projects/tock-posix/tock/libraries/tock-register-interface)
-Compiling nix v0.18.0
-Compiling cfg-if v0.1.10
-Compiling enum_primitive v0.1.0 (/home/alex/projects/tock-posix/tock/libraries/enum_primitive)
-Compiling linux_process v0.1.0 (/home/alex/projects/tock-posix/tock/boards/linux_process)
-Compiling kernel v0.1.0 (/home/alex/projects/tock-posix/tock/kernel)
-Compiling capsules v0.1.0 (/home/alex/projects/tock-posix/tock/capsules)
-Compiling components v0.1.0 (/home/alex/projects/tock-posix/tock/boards/components)
-Compiling posix v0.1.0 (/home/alex/projects/tock-posix/tock/arch/posix)
-Compiling linux v0.1.0 (/home/alex/projects/tock-posix/tock/chips/linux)
- Finished dev [optimized + debuginfo] target(s) in 19.31s
-text    data     bss     dec     hex filename
-329367  278920  265480  873767   d5527 /home/alex/projects/tock-posix/tock/target/x86_64-unknown-linux-gnu/debug/linux_process
-/home/alex/projects/tock-posix/tock//target/x86_64-unknown-linux-gnu/debug/linux_process.elf
-Initialization complete. Entering main loop
+tock@tock-dev:~/tock-saiot/tock/boards/stm32f4discovery$ make flash
+   Compiling tock-cells v0.1.0 (/home/tock/tock-saiot/tock/libraries/tock-cells)
+   Compiling tock-registers v0.5.0 (/home/tock/tock-saiot/tock/libraries/tock-register-interface)
+   Compiling enum_primitive v0.1.0 (/home/tock/tock-saiot/tock/libraries/enum_primitive)
+   Compiling tock-rt0 v0.1.0 (/home/tock/tock-saiot/tock/libraries/tock-rt0)
+   Compiling stm32f4discovery v0.1.0 (/home/tock/tock-saiot/tock/boards/stm32f4discovery)
+   Compiling kernel v0.1.0 (/home/tock/tock-saiot/tock/kernel)
+   Compiling cortexm v0.1.0 (/home/tock/tock-saiot/tock/arch/cortex-m)
+   Compiling capsules v0.1.0 (/home/tock/tock-saiot/tock/capsules)
+   Compiling cortexm4 v0.1.0 (/home/tock/tock-saiot/tock/arch/cortex-m4)
+   Compiling components v0.1.0 (/home/tock/tock-saiot/tock/boards/components)
+   Compiling stm32f4xx v0.1.0 (/home/tock/tock-saiot/tock/chips/stm32f4xx)
+   Compiling stm32f407zg v0.1.0 (/home/tock/tock-saiot/tock/chips/stm32f407zg)
+    Finished release [optimized + debuginfo] target(s) in 30.61s
+   text    data     bss     dec     hex filename
+  64929    2072   14312   81313   13da1 /home/tock/tock-saiot/tock/target/thumbv7em-none-eabi/release/stm32f4discovery
+/home/tock/renode-saiot/renode -e "s @/home/tock/tock-saiot/tock/boards/stm32f4discovery/stm32f4_discovery.resc"
+13:31:41.3966 [WARNING] Couldn't start UI - falling back to telnet mode
+13:31:41.8170 [INFO] Loaded monitor commands from: /home/tock/renode-saiot/./scripts/monitor.py
+13:31:41.8507 [INFO] Monitor available in telnet mode on port 1234
+13:31:42.1205 [INFO] Including script: /home/tock/tock-saiot/tock/boards/stm32f4discovery/stm32f4_discovery.resc
+13:31:42.1366 [INFO] System bus created.
+13:31:43.2308 [INFO] sysbus: Loaded SVD: /tmp/renode-2868/35141cbd-dcd5-4773-9f1d-676bce7619b5.tmp. Name: STM32F40x. Description: STM32F40x.
+13:31:43.5522 [INFO] cpu: Guessing VectorTableOffset value to be 0x8000000.
+13:31:43.5552 [INFO] cpu: Setting initial values: PC = 0x8007571, SP = 0x20001000.
+13:31:43.6870 [INFO] uart2: [+0.27s host +0s virt 0s virt from start] Initialization complete. Entering main loop
 ```
 
 Now you have a running Tock kernel.
-
----
-class: split-50
-
-## Console
-
-Tock console is simulated as `stdout`.
 
 ---
 
@@ -310,6 +315,254 @@ in the app's folder and open the .lst file.
 
 ---
 
+# Build an application
+
+Use the `tock-saiot` folder. The kernel folder is called 'tock', the apps folder is called `libtock-c`.
+
+In `examples/cc_hello` run:
+
+```bash
+tock@tock-dev:~/tock-saiot/libtock-c/examples/c_hello$ make
+ DIR        ../../libtock/build/cortex-m0
+  CC        ../../libtock/internal/alarm_internal.c
+  CC        ../../libtock/internal/nonvolatile_storage_internal.c
+  CC        ../../libtock/ieee802154.c
+  CC        ../../libtock/alarm_timer.c
+  CC        ../../libtock/i2c_master_slave.c
+  CC        ../../libtock/max17205.c
+  CC        ../../libtock/nrf51_serialization.c
+  CC        ../../libtock/aes.c
+  CC        ../../libtock/crt0.c
+  CC        ../../libtock/unit_test.c
+  CC        ../../libtock/gpio_async.c
+  CC        ../../libtock/crc.c
+  CC        ../../libtock/lps25hb.c
+  CC        ../../libtock/button.c
+  CC        ../../libtock/rng.c
+  CC        ../../libtock/l3gd20.c
+  CC        ../../libtock/ninedof.c
+  CC        ../../libtock/screen.c
+  CC        ../../libtock/ble.c
+  CC        ../../libtock/humidity.c
+  CC        ../../libtock/tock.c
+  CC        ../../libtock/usb.c
+  CC        ../../libtock/spi.c
+  CC        ../../libtock/app_state.c
+  CC        ../../libtock/console.c
+  CC        ../../libtock/tmp006.c
+  CC        ../../libtock/lsm303dlhc.c
+  CC        ../../libtock/gpio.c
+  CC        ../../libtock/ipc.c
+  CC        ../../libtock/ltc294x.c
+  CC        ../../libtock/pca9544a.c
+  CC        ../../libtock/analog_comparator.c
+  CC        ../../libtock/led.c
+  CC        ../../libtock/sys.c
+  CC        ../../libtock/st7735.c
+  CC        ../../libtock/temperature.c
+  CC        ../../libtock/spi_slave.c
+  CC        ../../libtock/tsl2561.c
+  CC        ../../libtock/udp.c
+  CC        ../../libtock/sdcard.c
+  CC        ../../libtock/hd44780.c
+  CC        ../../libtock/ambient_light.c
+  CC        ../../libtock/dac.c
+  CC        ../../libtock/adc.c
+  AR        ../../libtock/build/cortex-m0/libtock.a
+ DIR        ../../libtock/build/cortex-m3
+  CC        ../../libtock/internal/alarm_internal.c
+  CC        ../../libtock/internal/nonvolatile_storage_internal.c
+  CC        ../../libtock/ieee802154.c
+  CC        ../../libtock/alarm_timer.c
+  CC        ../../libtock/i2c_master_slave.c
+  CC        ../../libtock/max17205.c
+  CC        ../../libtock/nrf51_serialization.c
+  CC        ../../libtock/aes.c
+  CC        ../../libtock/crt0.c
+  CC        ../../libtock/unit_test.c
+  CC        ../../libtock/gpio_async.c
+  CC        ../../libtock/crc.c
+  CC        ../../libtock/lps25hb.c
+  CC        ../../libtock/button.c
+  CC        ../../libtock/rng.c
+  CC        ../../libtock/l3gd20.c
+  CC        ../../libtock/ninedof.c
+  CC        ../../libtock/screen.c
+  CC        ../../libtock/ble.c
+  CC        ../../libtock/humidity.c
+  CC        ../../libtock/tock.c
+  CC        ../../libtock/usb.c
+  CC        ../../libtock/spi.c
+  CC        ../../libtock/app_state.c
+  CC        ../../libtock/console.c
+  CC        ../../libtock/tmp006.c
+  CC        ../../libtock/lsm303dlhc.c
+  CC        ../../libtock/gpio.c
+  CC        ../../libtock/ipc.c
+  CC        ../../libtock/ltc294x.c
+  CC        ../../libtock/pca9544a.c
+  CC        ../../libtock/analog_comparator.c
+  CC        ../../libtock/led.c
+  CC        ../../libtock/sys.c
+  CC        ../../libtock/st7735.c
+  CC        ../../libtock/temperature.c
+  CC        ../../libtock/spi_slave.c
+  CC        ../../libtock/tsl2561.c
+  CC        ../../libtock/udp.c
+  CC        ../../libtock/sdcard.c
+  CC        ../../libtock/hd44780.c
+  CC        ../../libtock/ambient_light.c
+  CC        ../../libtock/dac.c
+  CC        ../../libtock/adc.c
+  AR        ../../libtock/build/cortex-m3/libtock.a
+ DIR        ../../libtock/build/cortex-m4
+  CC        ../../libtock/internal/alarm_internal.c
+  CC        ../../libtock/internal/nonvolatile_storage_internal.c
+  CC        ../../libtock/ieee802154.c
+  CC        ../../libtock/alarm_timer.c
+  CC        ../../libtock/i2c_master_slave.c
+  CC        ../../libtock/max17205.c
+  CC        ../../libtock/nrf51_serialization.c
+  CC        ../../libtock/aes.c
+  CC        ../../libtock/crt0.c
+  CC        ../../libtock/unit_test.c
+  CC        ../../libtock/gpio_async.c
+  CC        ../../libtock/crc.c
+  CC        ../../libtock/lps25hb.c
+  CC        ../../libtock/button.c
+  CC        ../../libtock/rng.c
+  CC        ../../libtock/l3gd20.c
+  CC        ../../libtock/ninedof.c
+  CC        ../../libtock/screen.c
+  CC        ../../libtock/ble.c
+  CC        ../../libtock/humidity.c
+  CC        ../../libtock/tock.c
+  CC        ../../libtock/usb.c
+  CC        ../../libtock/spi.c
+  CC        ../../libtock/app_state.c
+  CC        ../../libtock/console.c
+  CC        ../../libtock/tmp006.c
+  CC        ../../libtock/lsm303dlhc.c
+  CC        ../../libtock/gpio.c
+  CC        ../../libtock/ipc.c
+  CC        ../../libtock/ltc294x.c
+  CC        ../../libtock/pca9544a.c
+  CC        ../../libtock/analog_comparator.c
+  CC        ../../libtock/led.c
+  CC        ../../libtock/sys.c
+  CC        ../../libtock/st7735.c
+  CC        ../../libtock/temperature.c
+  CC        ../../libtock/spi_slave.c
+  CC        ../../libtock/tsl2561.c
+  CC        ../../libtock/udp.c
+  CC        ../../libtock/sdcard.c
+  CC        ../../libtock/hd44780.c
+  CC        ../../libtock/ambient_light.c
+  CC        ../../libtock/dac.c
+  CC        ../../libtock/adc.c
+  AR        ../../libtock/build/cortex-m4/libtock.a
+ DIR        build/cortex-m0
+  CC        main.c
+  LD        build/cortex-m0/cortex-m0.elf
+ DIR        build/cortex-m3
+  CC        main.c
+  LD        build/cortex-m3/cortex-m3.elf
+ DIR        build/cortex-m4
+  CC        main.c
+  LD        build/cortex-m4/cortex-m4.elf
+Creating "build/cortex-m0/cortex-m0.tbf"
+Min RAM size from segments in ELF: 508 bytes
+Number of writeable flash regions: 0
+  Adding .crt0_header section. Offset: 44 (0x2c). Length: 40 (0x28) bytes.
+Entry point is in .text section
+  Adding .text section. Offset: 84 (0x54). Length: 732 (0x2dc) bytes.
+  Adding .got section. Offset: 816 (0x330). Length: 32 (0x20) bytes.
+  Adding .data section. Offset: 848 (0x350). Length: 128 (0x80) bytes.
+Searching for .rel.X sections to add.
+  Adding .rel.data section. Offset: 1020 (0x3fc). Length: 40 (0x28) bytes.
+TBF Header:
+               version:        2        0x2
+           header_size:       44       0x2C
+            total_size:     1024      0x400
+                 flags:        1        0x1
+
+        init_fn_offset:       41       0x29
+        protected_size:        0        0x0
+      minimum_ram_size:     4604     0x11FC
+
+Creating "build/cortex-m3/cortex-m3.tbf"
+Min RAM size from segments in ELF: 508 bytes
+Number of writeable flash regions: 0
+  Adding .crt0_header section. Offset: 44 (0x2c). Length: 40 (0x28) bytes.
+Entry point is in .text section
+  Adding .text section. Offset: 84 (0x54). Length: 520 (0x208) bytes.
+  Adding .got section. Offset: 604 (0x25c). Length: 32 (0x20) bytes.
+  Adding .data section. Offset: 636 (0x27c). Length: 128 (0x80) bytes.
+Searching for .rel.X sections to add.
+  Adding .rel.data section. Offset: 808 (0x328). Length: 40 (0x28) bytes.
+TBF Header:
+               version:        2        0x2
+           header_size:       44       0x2C
+            total_size:     1024      0x400
+                 flags:        1        0x1
+
+        init_fn_offset:       41       0x29
+        protected_size:        0        0x0
+      minimum_ram_size:     4604     0x11FC
+
+Creating "build/cortex-m4/cortex-m4.tbf"
+Min RAM size from segments in ELF: 508 bytes
+Number of writeable flash regions: 0
+  Adding .crt0_header section. Offset: 44 (0x2c). Length: 40 (0x28) bytes.
+Entry point is in .text section
+  Adding .text section. Offset: 84 (0x54). Length: 520 (0x208) bytes.
+  Adding .got section. Offset: 604 (0x25c). Length: 32 (0x20) bytes.
+  Adding .data section. Offset: 636 (0x27c). Length: 128 (0x80) bytes.
+Searching for .rel.X sections to add.
+  Adding .rel.data section. Offset: 808 (0x328). Length: 40 (0x28) bytes.
+TBF Header:
+               version:        2        0x2
+           header_size:       44       0x2C
+            total_size:     1024      0x400
+                 flags:        1        0x1
+
+        init_fn_offset:       41       0x29
+        protected_size:        0        0x0
+      minimum_ram_size:     4604     0x11FC
+
+Application size report for target cortex-m0:
+   text    data     bss     dec     hex filename
+    732     200    2396    3328     d00 build/cortex-m0/cortex-m0.elf
+Application size report for target cortex-m3:
+   text    data     bss     dec     hex filename
+    520     200    2396    3116     c2c build/cortex-m3/cortex-m3.elf
+Application size report for target cortex-m4:
+   text    data     bss     dec     hex filename
+    520     200    2396    3116     c2c build/cortex-m4/cortex-m4.elf
+```
+
+Now you have built the `c_hello` application.
+
+---
+## Compile the kernel with the app
+
+Use the `tock-saiot` folder. The kernel folder is called 'tock', the apps folder is called `libtock-c`.
+
+In `boards/stm32f4discovery` edit the application name in the `Makefile`
+
+```bash
+APP=../../../libtock-c/examples/blink/build/cortex-m4/cortex-m4.tbf
+# blink id the app name here
+KERNEL=$(TOCK_ROOT_DIRECTORY)/target/$(TARGET)/debug/$(PLATFORM).elf
+KERNEL_WITH_APP=$(TOCK_ROOT_DIRECTORY)/target/$(TARGET)/debug/$(PLATFORM)-app.elf
+```
+
+```bash
+make program
+```
+
+---
+
 # Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)]
 
 1. Write and upload and app that faults. Use `tockloader`.
@@ -322,13 +575,10 @@ int main(void)
 }
 ```
 
-2. Upload the `blink` app using `tockloader`.
- - Does it work? Explain.
+2. Upload the `blink` app.
 
 3. Modify the app fault policy so that it does not panic when an app faults
   - hint: `main.rs` serach for `FAULT_RESPONSE`.
-
-Use the proecess console to show the details for the apps.
 
 ---
 # Scheduler & Handle Process
@@ -608,24 +858,6 @@ the [memop syscall documentation](syscalls/memop.md).
 #### Return
 
 - Dependent on the particular memop call.
-
----
-class: split-50
-# Write a driver
-
-.column[
-- Capsule
-- may not use `unsafe` sections
-- implements `Driver` trait
-
-Identified by a `usize` __Driver ID__
-
-.card[.small_vertical[![Driver Number](../images/sep_driver_number.png)]]
-]
-
-.column[
-.card[.large_vertical[![Driver](../images/sep_driver.png)]]
-]
 
 
     </textarea>

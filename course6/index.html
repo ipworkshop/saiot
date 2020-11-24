@@ -55,7 +55,7 @@ In `/home/tock` you have:
 
 ## Tock kernel source
 
-In `/home/tock-posix/tock` you have:
+In `/home/tock-saiot/tock` you have:
 ```bash
 +-- tock            # kernel
 |   +-- arch            # code specific to MCUs (ARM, RISC-V)
@@ -275,7 +275,7 @@ struct TheDriver {
 
 impl Driver for TheDriver {
     fn subscribe(&self, subscribe_num: usize, callback: Option<Callback>, appid: AppId) -> ReturnCode {
-        match command_num {
+        match subscribe_num {
             0 => self.callback.put (callback)
         }
     }
@@ -361,112 +361,6 @@ impl Driver for Hello {
     }
 }
 ```
-
----
-class: split-70
-
-## Delay in drivers
-
-Write a driver that prints hello every second
-
-We have to use the `Alarm` HIL as a generic type for our driver.
-
-.column[
-```rust
-use kernel::hil::time::{Alarm, AlarmClient, Frequency};
-use kernel::debug;
-use kernel::{AppId, Driver, ReturnCode, Grant};
-
-pub struct Hello<A: 'static + Alarm<'static>> {
-    alarm: &'static A,
-}
-
-impl<A: 'static + Alarm<'static>> Hello<A> {
-    pub fn new(alarm: &'static A) -> Hello<A> {
-        Hello { alarm: alarm }
-    }
-}
-```
-
-The `Alarm` trait cannot be used as `&'static dyn Alarm` due to its implementation (it has an assoctiated type `Alarm::Frequency`)
-
-]
-
-.column[
-.right[.card[.small_vertical[![Alarm](../images/sep_alarm.png)]]]
-]
-
----
-
-## Alarm Implementation
-
-Implement `Driver` and `AlarmClient`
-
-```rust
-impl<A: 'static + Alarm<'static>> Driver for Hello<A> {
-    fn command(
-        &self,
-        command_num: usize,
-        _data1: usize,
-        _data2: usize,
-        _app_id: AppId,
-    ) -> ReturnCode {
-        match command_num {
-            0 => ReturnCode::SUCCESS,
-            1 => {
-                // set an alarm
-                self.alarm.set_alarm(
-                    self.alarm.now(),
-                    <A::Frequency>::frequency() / 1000);
-                ReturnCode::SUCCESS
-            }
-            _ => ReturnCode::ENOSUPPORT,
-        }
-    }
-}
-
-impl<A: 'static + Alarm<'static>> AlarmClient for Hello<A> {
-    fn alarm(&self) {
-        debug! ("hello");
-        // next alarm
-        self.alarm.set_alarm(
-            self.alarm.now(),
-            <A::Frequency>::frequency() / 1000);
-    }
-}
-```
-
----
-## Set the timeout
-
-The `<A::Frequency>::frequency()` returns the MCU's alarm frequency, meaning how many tics
-the timer will have per second.
-
-`alarm.now ()` returns the current tics number
-
----
-## Intialize the alarm using `VirtualAlarm` 
-
-In `main.rs` add the generic type to `Hello`
-
-```rust
-let hello_alarm = static_init!(
-    VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2>,
-    VirtualMuxAlarm::new(mux_alarm)
-);
-
-let hello = static_init!(
-    hello::Hello<VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2<'static>>>,
-    hello::Hello::new(hello_alarm)
-);
-```
-
----
-# Workpoint 6 .top_image[![Work In Progress](../images/work_in_progress.png)]
-
-Write a driver that recevies a letter and prints its Morse Code using the correct timeouts
-  - It will print . for a point and wait 1 time unit
-  - it will print - for a line and wait 3 time units
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">

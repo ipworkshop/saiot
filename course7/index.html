@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Course 7 - Delay & Grants</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../style/style.css"></link>
+    <style>
+      
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Delay & Grants
+
+.title[.center[![SecureEmbeddedProgramming](../images/sep.png)]]
+
+.left[
+Alexandru Radovici ilustrations by [Mieuneli](http://miau.laura.ro)
+]
+
+---
+
+# Overview
+
+1. Delay in drivers
+2. Grants
+3. Boardgame
+
+---
+
+# Virtual Devices
+
+.card[.large[.center[![Borrow Rules](../images/sep_virtual_device.png)]]]
+
+---
+class: split-70
+
+# Delay in drivers
+
+Write a driver that prints hello every second
+
+We have to use the `Alarm` HIL as a generic type for our driver.
+
+.column[
+```rust
+use kernel::hil::time::{Alarm, AlarmClient, Frequency};
+use kernel::debug;
+use kernel::{AppId, Driver, ReturnCode, Grant};
+
+pub struct Hello<A: 'static + Alarm<'static>> {
+    alarm: &'static A,
+}
+
+impl<A: 'static + Alarm<'static>> Hello<A> {
+    pub fn new(alarm: &'static A) -> Hello<A> {
+        Hello { alarm: alarm }
+    }
+}
+```
+
+The `Alarm` trait cannot be used as `&'static dyn Alarm` due to its implementation (it has an assoctiated type `Alarm::Frequency`)
+
+]
+
+.column[
+.right[.card[.small_vertical[![Alarm](../images/sep_alarm.png)]]]
+]
+
+---
+
+## Alarm Implementation
+
+Implement `Driver` and `AlarmClient`
+
+```rust
+impl<A: 'static + Alarm<'static>> Driver for Hello<A> {
+    fn command(
+        &self,
+        command_num: usize,
+        _data1: usize,
+        _data2: usize,
+        _app_id: AppId,
+    ) -> ReturnCode {
+        match command_num {
+            0 => ReturnCode::SUCCESS,
+            1 => {
+                // set an alarm
+                self.alarm.set_alarm(
+                    self.alarm.now(),
+                    <A::Frequency>::frequency() / 1000);
+                ReturnCode::SUCCESS
+            }
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+
+impl<A: 'static + Alarm<'static>> AlarmClient for Hello<A> {
+    fn alarm(&self) {
+        debug! ("hello");
+        // next alarm
+        self.alarm.set_alarm(
+            self.alarm.now(),
+            <A::Frequency>::frequency() / 1000);
+    }
+}
+```
+
+---
+## Set the timeout
+
+The `<A::Frequency>::frequency()` returns the MCU's alarm frequency, meaning how many tics
+the timer will have per second.
+
+`alarm.now ()` returns the current tics number
+
+| Timeout | Frequency |
+|---------|-----------|
+| 100 ns&sup1;  | `<A::Frequency>::frequency()` / 10000 |
+| 1 ms    | `<A::Frequency>::frequency()` / 1000 |
+| 10 ms   | `<A::Frequency>::frequency()` / 100 |
+| 100 ms  | `<A::Frequency>::frequency()` / 10 |
+| 1 s     | `<A::Frequency>::frequency()` |
+| 10 s    | `<A::Frequency>::frequency()` * 10 |
+
+&sup1; May not work
+
+
+---
+## Intialize the alarm using `VirtualAlarm` 
+
+In `main.rs` add the generic type to `Hello`
+
+```rust
+let hello_alarm = static_init!(
+    VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2>,
+    VirtualMuxAlarm::new(mux_alarm)
+);
+
+let hello = static_init!(
+    hello::Hello<VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2<'static>>>,
+    hello::Hello::new(hello_alarm)
+);
+```
+
+---
+# Grants
+
+- Drivers may not allocate memeory
+- Drivers store data for every app
+- Data is deallocated when the app stops
+
+.card[.large[.center[![Borrow Rules](../images/sep_process_memory.png)]]]
+
+---
+
+## Grants Usage
+
+In `hello.rs`
+```rust
+#[derive(Default)]
+pub struct AppData {
+    // ...
+}
+
+pub struct Hello {
+    // ...
+    grant: Grant<AppData>
+}
+```
+
+In `main.rs`
+```rust
+#[no_mangle]
+pub unsafe fn reset_handler() {
+    // ...
+    let grant_cap = create_capability!(capabilities::MemoryAllocationCapability);
+    let grant_hello = board_kernel.create_grant(&grant_cap);
+
+    let hello = static_init!(
+        hello::Hello,
+        hello::Hello::new(grant_hello)
+    );
+    // ...
+}
+```
+---
+
+## Using the Grant
+
+```rust
+impl Driver for Hello {
+    fn command(
+        &self,
+        command_num: usize,
+        _data1: usize,
+        _data2: usize,
+        app_id: AppId,
+    ) -> ReturnCode {
+        match command_num {
+            0 => ReturnCode::SUCCESS,
+            1 => {
+                self.grant.enter (app_id, |app, _| {
+                    // app is of type AppData
+                    // use app. ...
+                    ReturnCode::SUCCESS
+                }).unwrap_or_else (|err| err.into())
+            }
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+```
+
+---
+
+# Workpoint 2 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Modify the counter driver to use a different counter for each app. Load two apps that print the counter at different intervals.
+
+```rust
+impl Driver for Hello {
+    /// subscribe and allow will use the default implementation
+    /// command syscall
+    fn command(&self, command_num: usize, _data1: usize, _data2: usize, _app_id: AppId) -> ReturnCode {
+        match command_num {
+            // command_num 0 is used to verify if the driver exists
+            0 => ReturnCode::SUCCESS,
+            1 => { debug! ("Print Hello"); ReturnCode::SUCCESS }
+            2 => {
+                // use a grant
+                self.nr.set (self.nr.get () + 1);
+                ReturnCode::SuccessWithValue { value: self.nr.get() }
+            }
+            // the command number is not defined
+            _ => ReturnCode::ENOSUPPORT,
+        }
+    }
+}
+```
+
+---
+
+## Share Buffers
+
+Apps may share data with drivers using the `allow` system call and `AppSlice<Shared>` and `Gants`.
+
+```rust
+struct AppData {
+    buffer: Option<AppSlice<Shared>>
+}
+
+struct Print {
+    grant: Grant<AppData>
+    // ...
+}
+
+impl Driver for Print {
+    fn allow(&self, appid: AppId, allow_num: usize, slice: Option<AppSlice<Shared, u8>>,) -> ReturnCode {
+        match allow_num {
+            0 => self
+                .apps
+                .enter(appid, |app, _| {
+                    app.buffer = slice;
+                    ReturnCode::SUCCESS
+                }).unwrap_or_else(|err| err.into()),
+            _ => ReturnCode::ENOSUPPORT
+        }
+    }
+    // ...
+}
+```
+
+---
+# Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Implement the full print driver in `print.rs`.
+
+```rust
+impl Driver for Print {
+    fn allow(&self, appid: AppId, allow_num: usize, slice: Option<AppSlice<Shared, u8>>,) -> ReturnCode {
+        match allow_num {
+            0 => self
+                .apps
+                .enter(appid, |app, _| {
+                    app.buffer = slice;
+                    ReturnCode::SUCCESS
+                }).unwrap_or_else(|err| err.into()),
+            _ => ReturnCode::ENOSUPPORT
+        }
+    }
+    fn command(&self, command_num: usize, data1: usize, data2: usize, appid: AppId) -> ReturnCode {
+        match command_num {
+            0 => ReturnCode::SUCCESS,
+            // ...
+            _ => ReturnCode::ENOSUPPORT
+        }
+    }
+}
+```
+
+Hint: use `debug!` to print data.
+
+---
+# Boardgame
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="../script/playground.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+		navigation: {
+				scroll: false
+			}
+    });
+    window.cPlaygroundUrl = "https://cplayground.com/";
+    window.playgroundUrl = "https://play.rust-lang.org/";
+    </script>
+  </body>
+</html>
