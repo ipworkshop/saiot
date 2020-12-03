@@ -26,8 +26,8 @@ Alexandru Radovici, ilustrations by [Mieuneli](http://miau.laura.ro)
 # Overview
 
 1. Tock Development Environment
-2. Tock
-3. Applications
+2. Renode Emulator
+3. Tock
 
 ---
 
@@ -47,7 +47,7 @@ You will have to install:
     - Windows: Make sure you select __Allow__ when you get a question from the Firewall
 
 &sup1;If you are running Linux, this step is recommended, not necessary.<br>
-&sup2;You do need these for simulating T
+&sup2;You do need these for simulating Tock
 
 ---
 ## Virtual Box
@@ -76,6 +76,28 @@ Setup the Extensions:
 .center[.title[![Remote SHH Link](../images/vscode_ssh_link.png)]]
 
 &sup1; Due to an issue with the Remote SSH Extension, you will always have to write `tock@localhost:2000`, it will not be remebered.
+
+---
+
+# Renode
+
+SoC Emulator
+  - Very simple emulation of Cortex-M and STM32F4Discovery
+  - Patches required for Tock (`stm32f4xx` chip) and Renode (pending interrupts)
+
+Use our patched [Renode](https://github.com/UPBIoT/renode-iot)
+
+Included in the [Tock Virtual Machine](https://wyliodrinstudio.s3.eu-central-1.amazonaws.com/images/Tock-SAIoT.ova)
+
+---
+
+## Using Renode
+
+- Use the [Tock Virtual Machine](https://wyliodrinstudio.s3.eu-central-1.amazonaws.com/images/Tock-SAIoT.ova) 
+  - Import Appliance
+  - Windows: Make sure you select __Allow__ when you get a question from the Firewall
+
+- Use the `stm32f4discovery` board from `/home/tock/tock-saiot/tock/boards/stm32f4discovery`.
 
 ---
 # Tock
@@ -209,7 +231,7 @@ tock@tock-dev:~/tock-saiot/tock/boards/stm32f4discovery$ make flash
 13:31:43.6870 [INFO] uart2: [+0.27s host +0s virt 0s virt from start] Initialization complete. Entering main loop
 ```
 
-Now you have a running Tock kernel.
+Now you have a running Tock kernel
 
 ---
 
@@ -243,77 +265,6 @@ One process is running at a time
   - Report fault
 
 .right[.card[.small[![Scheduler Card](../images/sep_scheduler.png)]]]
-
----
-# Fault
-
-.pre[
-````terminal
----| Fault Status |---
-Data Access Violation:              true
-Forced Hard Fault:                  true
-Faulting Memory Address:            0x00000000
-Fault Status Register (CFSR):       0x00000082
-Hard Fault Status Register (HFSR):  0x40000000
-
----| App Status |---
-App: crash_dummy   -   [Fault]
- Events Queued: 0   Syscall Count: 0   Dropped Callback Count: 0
- Restart Count: 0
- Last Syscall: None
-
- ╔═══════════╤══════════════════════════════════════════╗
- ║  Address  │ Region Name    Used | Allocated (bytes)  ║
- ╚0x20006000═╪══════════════════════════════════════════╝
-             │ ▼ Grant         948 |    948
-  0x20005C4C ┼───────────────────────────────────────────
-             │ Unused
-  0x200049F0 ┼───────────────────────────────────────────
-             │ ▲ Heap            0 |   4700               S
-  0x200049F0 ┼─────────────────────────────────────────── R
-             │ Data            496 |    496               A
-  0x20004800 ┼─────────────────────────────────────────── M
-             │ ▼ Stack          72 |   2048
-  0x200047B8 ┼───────────────────────────────────────────
-             │ Unused
-  0x20004000 ┴───────────────────────────────────────────
-             .....
-  0x00030400 ┬─────────────────────────────────────────── F
-             │ App Flash       976                        L
-  0x00030030 ┼─────────────────────────────────────────── A
-             │ Protected        48                        S
-  0x00030000 ┴─────────────────────────────────────────── H
-
-  R0 : 0x00000000    R6 : 0x20004894
-  R1 : 0x00000001    R7 : 0x20004000
-  R2 : 0x00000000    R8 : 0x00000000
-  R3 : 0x00000000    R10: 0x00000000
-  R4 : 0x00000000    R11: 0x00000000
-  R5 : 0x20004800    R12: 0x12E36C82
-  R9 : 0x20004800 (Static Base Register)
-  SP : 0x200047B8 (Process Stack Pointer)
-  LR : 0x000301B7
-  PC : 0x000300AA
- YPC : 0x000301B6
-
- APSR: N 0 Z 1 C 1 V 0 Q 0
-       GE 0 0 0 0
- EPSR: ICI.IT 0x00
-       ThumbBit true
-
- Cortex-M MPU
-  Region 0: base: 0x20004000, length: 8192 bytes; ReadWrite (0x3)
-  Region 1: base:    0x30000, length: 1024 bytes; ReadOnly (0x6)
-  Region 2: Unused
-  Region 3: Unused
-  Region 4: Unused
-  Region 5: Unused
-  Region 6: Unused
-  Region 7: Unused
-
-To debug, run `make debug RAM_START=0x20004000 FLASH_INIT=0x30059`
-in the app's folder and open the .lst file.
-````]
 
 ---
 
@@ -563,32 +514,24 @@ KERNEL_WITH_APP=$(TOCK_ROOT_DIRECTORY)/target/$(TARGET)/debug/$(PLATFORM)-app.el
 make program
 ```
 
----
-
-# Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)]
-
-1. Write and upload and app that faults. Use `tockloader`.
-```c
-int main(void)
-{
-      int *s = NULL;
-      *s = 0;
-      return 0;
-}
-```
-
-2. Upload the `blink` app.
-
-3. Modify the app fault policy so that it does not panic when an app faults
-  - hint: `main.rs` serach for `FAULT_RESPONSE`.
+Now you should have a Tock kernal and application running.
+Hint: 
+1. The application name here is `blink`, change it with another application to run something different.
+2. To run several applications, use `cat app1.tbf app2.tbf > app.bundle` and use the `app.bundle` for the `APP` variable 
 
 ---
-# Scheduler & Handle Process
+
+## Workpoint 3 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Upload the `blink` app.
+
+---
+## Scheduler & Handle Process
 
 .center[.title[![Scheduler](../images/scheduler.svg)]]
 
 ---
-# Scheduler
+## Scheduler
 
 The `Scheduler` trait
 
@@ -698,7 +641,7 @@ pub enum StoppedExecutingReason {
 ---
 
 class: split-50
-# System Call
+## System Call
 
 .column[
 API provided by the OS
@@ -715,7 +658,7 @@ Applications request an action from the OS
 ]
 
 ---
-# Tock System Calls
+## Tock System Calls
 
 0. Yield
 1. Subscribe
@@ -734,7 +677,7 @@ Applications request an action from the OS
 
 ---
 
-## 0: Yield
+### 0: Yield
 
 Yield transitions the current process from the Running to the Yielded state, and
 the process will not execute again until another callback re-schedules the
@@ -757,7 +700,7 @@ None.
 
 ---
 
-## 1: Subscribe
+### 1: Subscribe
 
 Subscribe assigns callback functions to be executed in response to various
 events.
@@ -784,7 +727,7 @@ subscribe(driver: u32, subscribe_number: u32, callback: u32, userdata: u32) -> R
 
 ---
 
-## 2: Command
+### 2: Command
 
 Command instructs the driver to perform a specific action.
 
@@ -810,7 +753,7 @@ always return a value of 0 or greater if the driver is supported.
 
 ---
 
-## 3: Allow
+### 3: Allow
 
 Allow shares memory buffers between the kernel and application.
 - null pointer revokes sharing a region.
@@ -837,7 +780,7 @@ partially outside of the processes addressable RAM.
 
 ---
 
-## 4: Memop
+### 4: Memop
 
 Memop expands the memory segment available to the process, allows the process to
 retrieve pointers to its allocated memory space, provides a mechanism for
@@ -861,6 +804,108 @@ the [memop syscall documentation](syscalls/memop.md).
 
 - Dependent on the particular memop call.
 
+
+---
+## Workpoint 4 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+Enable the system calls trace in `kernel/src/config.rs`. 
+1. Upload an app that prints a text on the shell using `printf`. 
+  - How many system calls is printf using?
+  - What is the driver number of the driver used for printing?
+
+2. Upload the blink app and look at the system calls trace.
+  - What is led's driver number?
+
+---
+
+## Faults
+
+The kernal and the processes can fault
+
+.pre[
+````terminal
+---| Fault Status |---
+Data Access Violation:              true
+Forced Hard Fault:                  true
+Faulting Memory Address:            0x00000000
+Fault Status Register (CFSR):       0x00000082
+Hard Fault Status Register (HFSR):  0x40000000
+
+---| App Status |---
+App: crash_dummy   -   [Fault]
+ Events Queued: 0   Syscall Count: 0   Dropped Callback Count: 0
+ Restart Count: 0
+ Last Syscall: None
+
+ ╔═══════════╤══════════════════════════════════════════╗
+ ║  Address  │ Region Name    Used | Allocated (bytes)  ║
+ ╚0x20006000═╪══════════════════════════════════════════╝
+             │ ▼ Grant         948 |    948
+  0x20005C4C ┼───────────────────────────────────────────
+             │ Unused
+  0x200049F0 ┼───────────────────────────────────────────
+             │ ▲ Heap            0 |   4700               S
+  0x200049F0 ┼─────────────────────────────────────────── R
+             │ Data            496 |    496               A
+  0x20004800 ┼─────────────────────────────────────────── M
+             │ ▼ Stack          72 |   2048
+  0x200047B8 ┼───────────────────────────────────────────
+             │ Unused
+  0x20004000 ┴───────────────────────────────────────────
+             .....
+  0x00030400 ┬─────────────────────────────────────────── F
+             │ App Flash       976                        L
+  0x00030030 ┼─────────────────────────────────────────── A
+             │ Protected        48                        S
+  0x00030000 ┴─────────────────────────────────────────── H
+
+  R0 : 0x00000000    R6 : 0x20004894
+  R1 : 0x00000001    R7 : 0x20004000
+  R2 : 0x00000000    R8 : 0x00000000
+  R3 : 0x00000000    R10: 0x00000000
+  R4 : 0x00000000    R11: 0x00000000
+  R5 : 0x20004800    R12: 0x12E36C82
+  R9 : 0x20004800 (Static Base Register)
+  SP : 0x200047B8 (Process Stack Pointer)
+  LR : 0x000301B7
+  PC : 0x000300AA
+ YPC : 0x000301B6
+
+ APSR: N 0 Z 1 C 1 V 0 Q 0
+       GE 0 0 0 0
+ EPSR: ICI.IT 0x00
+       ThumbBit true
+
+ Cortex-M MPU
+  Region 0: base: 0x20004000, length: 8192 bytes; ReadWrite (0x3)
+  Region 1: base:    0x30000, length: 1024 bytes; ReadOnly (0x6)
+  Region 2: Unused
+  Region 3: Unused
+  Region 4: Unused
+  Region 5: Unused
+  Region 6: Unused
+  Region 7: Unused
+
+To debug, run `make debug RAM_START=0x20004000 FLASH_INIT=0x30059`
+in the app's folder and open the .lst file.
+````]
+
+---
+
+## Workpoint 5 .top_image[![Work In Progress](../images/work_in_progress.png)]
+
+1. Write and upload and app that faults.
+```c
+int main(void)
+{
+      int *s = NULL;
+      *s = 0;
+      return 0;
+}
+```
+
+2. Modify the app fault policy so that it does not panic when an app faults
+  - hint: `main.rs` serach for `FAULT_RESPONSE`.
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">

@@ -25,47 +25,19 @@ Alexandru Radovici, Cosmin Daniel Radu, ilustrations by [Mieuneli](http://miau.l
 
 # Overview
 
-1. Renode
+1. Tock Applications
 2. Simple Driver 
 3. System calls
 
 ---
+# Tock Applications
 
-# Renode
-
-SoC Emulator
-  - Very simple emulation of Cortex-M and STM32F4Discovery
-  - Patches required for Tock (`stm32f4xx` chip) and Renode (pending interrupts)
-
-Use our patched [Renode](https://github.com/UPBIoT/renode-iot)
-
-Included in the [Tock Virtual Machine](https://wyliodrinstudio.s3.eu-central-1.amazonaws.com/images/Tock-SAIoT.ova)
-
----
-
-## Using Renode
-
-- Use the [Tock Virtual Machine](https://wyliodrinstudio.s3.eu-central-1.amazonaws.com/images/Tock-SAIoT.ova) 
-  - Import Appliance
-  - Windows: Make sure you select __Allow__ when you get a question from the Firewall
-
-- Use the `stm32f4discovery` board from `/home/tock/tock-saiot/tock/boards/stm32f4discovery`.
-
----
-# Workpoint 1 .top_image[![Work In Progress](../images/work_in_progress.png)]
-
-Enable the system calls trace in `kernel/src/config.rs`. 
-1. Upload and app that prints a text on the shell using `printf`. 
-  - How many system calls is printf using?
-  - What is the driver number of the driver used for printing?
-
-2. Upload the blink app and look at the system calls trace.
-  - What is led's driver number?
+TODO
 
 ---
 # Hello Driver
 
-Kernel
+Kernel 
 
 1. Write the `Hello` and its implementation
 2. Implement the `Driver` trait for `Hello`
@@ -77,7 +49,7 @@ User space
 - Implement the system calls
 
 ---
-## Kernel
+## Kernel (hello.rs)
 
 Write the driver and implement the `Driver` trait (1 and 2).
 
@@ -120,7 +92,7 @@ impl Driver for Hello {
 ```
 
 ---
-## Kernel
+## Kernel (main.rs)
 
 Register the driver for in the board's structure (3)
 
@@ -134,27 +106,23 @@ mod hello;
 
 /// A structure representing this platform that holds references to all
 /// capsules for this platform.
-struct STM32F412GDiscovery {
+struct STM32F4Discovery {
     console: &'static capsules::console::Console<'static>,
     ipc: kernel::ipc::IPC,
-    led: &'static capsules::led::LED<'static, stm32f412g::gpio::Pin<'static>>,
-    button: &'static capsules::button::Button<'static, stm32f412g::gpio::Pin<'static>>,
+    led: &'static capsules::led::LED<'static, stm32f407zg::gpio::Pin<'static>>,
+    button: &'static capsules::button::Button<'static, stm32f407zg::gpio::Pin<'static>>,
     alarm: &'static capsules::alarm::AlarmDriver<
         'static,
-        VirtualMuxAlarm<'static, stm32f412g::tim2::Tim2<'static>>,
+        VirtualMuxAlarm<'static, stm32f407zg::tim2::Tim2<'static>>,
     >,
-    gpio: &'static capsules::gpio::GPIO<'static, stm32f412g::gpio::Pin<'static>>,
-    adc: &'static capsules::adc::Adc<'static, stm32f412g::adc::Adc>,
-    ft6x06: &'static capsules::ft6x06::Ft6x06<'static>,
-    touch: &'static capsules::touch::Touch<'static>,
+    gpio: &'static capsules::gpio::GPIO<'static, stm32f407zg::gpio::Pin<'static>>,
     // hello driver
     hello: &'static hello::Hello
 }
-
 // ...
 
 /// Mapping of integer syscalls to objects that implement syscalls.
-impl Platform for STM32F412GDiscovery {
+impl Platform for STM32F4Discovery {
     fn with_driver<F, R>(&self, driver_num: usize, f: F) -> R
     where
         F: FnOnce(Option<&dyn kernel::Driver>) -> R,
@@ -166,16 +134,12 @@ impl Platform for STM32F412GDiscovery {
             capsules::alarm::DRIVER_NUM => f(Some(self.alarm)),
             kernel::ipc::DRIVER_NUM => f(Some(&self.ipc)),
             capsules::gpio::DRIVER_NUM => f(Some(self.gpio)),
-            capsules::adc::DRIVER_NUM => f(Some(self.adc)),
-            capsules::ft6x06::DRIVER_NUM => f(Some(self.ft6x06)),
-            capsules::touch::DRIVER_NUM => f(Some(self.touch)),
             // hello driver
             hello::DRIVER_NUM => f(Some(self.hello)),
             _ => f(None),
         }
     }
 }
-
 // ...
 
 /// Reset Handler.
@@ -192,20 +156,16 @@ pub unsafe fn reset_handler() {
     let hello = static_init! (hello::Hello, hello::Hello::new());
 
     /// Create a new instance of the board's structure
-    let stm32f412g = STM32F412GDiscovery {
+    let stm32f407zg = STM32F4Discovery {
         console: console,
         ipc: kernel::ipc::IPC::new(board_kernel, &memory_allocation_capability),
         led: led,
         button: button,
         alarm: alarm,
         gpio: gpio,
-        adc: adc,
-        ft6x06: ft6x06,
-        touch: touch,
         // the hello driver
         hello: hello,
     };
-
     // ...
 }
 ```
@@ -213,7 +173,7 @@ pub unsafe fn reset_handler() {
 ---
 ## User space
 
-In your application's folder
+In your application's folder (`libtock-c/examples/...` - clone of of the examples)
 
 hello.h
 ```c
@@ -360,124 +320,6 @@ int main(void) {
 ```
 
 Hint: store the current number in the `Hello` structure.
-
----
-# Grants
-
-- Drivers may not allocate memeory
-- Drivers store data for every app
-- Data is deallocated when the app stops
-
-.card[.large[.center[![Borrow Rules](../images/sep_process_memory.png)]]]
-
-Image from https://github.com/tock/tock/tree/master/doc
-
----
-
-## Grants Usage
-
-In `hello.rs`
-```rust
-#[derive(Default)]
-pub struct AppData {
-    // ...
-}
-
-pub struct Hello {
-    // ...
-    grant: Grant<AppData>
-}
-```
-
-In `main.rs`
-```rust
-#[no_mangle]
-pub unsafe fn reset_handler() {
-    // ...
-    let grant_cap = create_capability!(capabilities::MemoryAllocationCapability);
-    let grant_hello = board_kernel.create_grant(&grant_cap);
-
-    let hello = static_init!(
-        hello::Hello,
-        hello::Hello::new(grant_hello)
-    );
-    // ...
-}
-```
----
-
-## Using the Grant
-
-```rust
-impl Driver for Hello {
-    fn command(
-        &self,
-        command_num: usize,
-        _data1: usize,
-        _data2: usize,
-        app_id: AppId,
-    ) -> ReturnCode {
-        match command_num {
-            0 => ReturnCode::SUCCESS,
-            1 => {
-                self.grant.enter (app_id, |app, _| {
-                    // app is of type AppData
-                    // use app. ...
-                    ReturnCode::SUCCESS
-                }).unwrap_or_else (|err| err.into())
-            }
-            _ => ReturnCode::ENOSUPPORT,
-        }
-    }
-}
-```
-
----
-# Loading multiple apps
-
-The easiest way is to concatenate the tbf files
-
-```bash
-cat app1.tbf app2.tbf > app.data
-```
-
-Use the `dat` file instead of the `tbf` file.
-
----
-
-# Workpoint 4 .top_image[![Work In Progress](../images/work_in_progress.png)]
-
-Load the `hello` and the `blink` apps.
-
----
-
-# Workpoint 5 .top_image[![Work In Progress](../images/work_in_progress.png)]
-
-Modify the counter driver to use a different counter for each app. Load two apps that print the counter at different intervals.
-
-```rust
-impl Driver for Hello {
-    /// subscribe and allow will use the default implementation
-    /// command syscall
-    fn command(&self, command_num: usize, _data1: usize, _data2: usize, _app_id: AppId) -> ReturnCode {
-        match command_num {
-            // command_num 0 is used to verify if the driver exists
-            0 => ReturnCode::SUCCESS,
-            1 => { debug! ("Print Hello"); ReturnCode::SUCCESS }
-            2 => {
-                // use a grant
-                self.nr.set (self.nr.get () + 1);
-                ReturnCode::SuccessWithValue { value: self.nr.get() }
-            }
-            // the command number is not defined
-            _ => ReturnCode::ENOSUPPORT,
-        }
-    }
-}
-```
-
-
-
 
     </textarea>
     <script src="https://remarkjs.com/downloads/remark-latest.min.js">
