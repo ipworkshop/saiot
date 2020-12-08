@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Course 7 - Boardgame</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../style/style.css"></link>
+    <style>
+      
+    </style>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Boardgame
+
+.title[.center[![SecureEmbeddedProgramming](../images/sep.png)]]
+
+.left[
+Alexandru Radovici ilustrations by [Mieuneli](http://miau.laura.ro), cards by Ioana Culic
+]
+
+---
+
+# Overview
+
+1. Boardgame
+2. Design a system
+3. Tiles Toolkit
+
+---
+# Boardgame
+
+The purpose of this game is:
+
+1. a better understanding of the Tock stack
+2. design a system
+3. costs and security
+
+---
+
+# Cards
+
+The boardgame has the following type of cards:
+
+
+- Hardware
+  1. Device
+  2. Bus
+  3. Peripheral
+- Software
+  1. Application
+  2. Capsule
+    - API (HIL consumer)
+    - HIL provider
+
+---
+## Hardware
+
+.title[.center[![API Capsule](../images/boardgame_hardware.png)]]
+
+---
+### Device
+
+This card is the hardware platform that your project starts from
+
+.title[.center[![Device](../images/boardgame_device.png)]]
+
+---
+### Bus
+
+This card provides the description of one of the board's bus types
+
+.title[.center[![Bus](../images/boardgame_bus.png)]]
+
+---
+### Device
+
+This cards represents a sensors or an actuator
+
+.title[.center[![Device](../images/boardgame_peripheral.png)]]
+
+---
+## Software
+
+.title[.center[![API Capsule](../images/boardgame_software.png)]]
+
+---
+### Application
+
+This card represents an application that runs on top of Tock.
+
+.title[.center[![API Capsule](../images/boardgame_application.png)]]
+
+---
+### Capsule (API)
+
+This card represents a capsule that:
+- provides an API to the user space.
+- consumes a HIL
+
+.title[.center[![API Capsule](../images/boardgame_capsule_api.png)]]
+
+---
+### Capsule (HIL Provider)
+
+This card represents a capsule that provides an HIL to the another capsue.
+
+.title[.center[![Capsule HIL Provider](../images/boardgame_capsule_hil.png)]]
+
+    </textarea>
+    <script src="https://remarkjs.com/downloads/remark-latest.min.js">
+    </script>
+    <script src="../script/playground.js">
+    </script>
+    <script>
+      var slideshow = remark.create({
+		navigation: {
+				scroll: false
+			}
+    });
+    window.cPlaygroundUrl = "https://cplayground.com/";
+    window.playgroundUrl = "https://play.rust-lang.org/";
+    </script>
+  </body>
+</html>
